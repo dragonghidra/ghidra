@@ -1,0 +1,142 @@
+<section
+  class="relative overflow-hidden rounded-[48px] border border-white/10 bg-gradient-to-b from-white/20/5 via-white/[0.04] to-transparent p-6 sm:p-10">
+  <div class="neon-grid absolute inset-0 opacity-40"></div>
+  <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-agent-violet/30 via-agent-violet/5 to-transparent"></div>
+  <div class="absolute inset-x-8 top-12 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+
+  <div class="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div>
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p class="text-xs uppercase tracking-[0.35em] text-white/60">Scroll-layered narrative</p>
+          <h2 class="mt-3 text-3xl font-semibold sm:text-4xl">Agent choreography stack</h2>
+        </div>
+        <div class="rounded-3xl border border-white/10 bg-white/[0.04] px-5 py-4 text-right backdrop-blur-2xl">
+          <p class="text-[0.65rem] uppercase tracking-[0.45em] text-white/50">Active layer</p>
+          <p class="mt-2 text-3xl font-semibold text-agent-cyan">0{{ activeStep() + 1 }}</p>
+        </div>
+      </div>
+      <p class="mt-6 max-w-3xl text-base text-white/70 lg:text-lg">
+        Scroll once; the instrumentation syncs instantly.
+      </p>
+
+      <div class="scroll-stage relative mt-12 h-[360vh]">
+        <div class="step-pin sticky top-6 flex h-[75vh] items-center justify-center sm:top-14">
+          <div class="flex w-full max-w-5xl items-start gap-6">
+            <div class="operation-rail hidden w-24 shrink-0 flex-col items-center gap-4 rounded-[32px] border border-white/10 bg-white/5 p-4 text-center text-[0.55rem] uppercase tracking-[0.4em] text-white/60 lg:flex">
+              <span>Flow</span>
+              <div class="operation-rail-track relative h-64 w-[3px] rounded-full bg-white/10">
+                <div
+                  class="operation-rail-fill absolute bottom-0 left-0 w-full rounded-full bg-gradient-to-b from-agent-violet via-agent-fuchsia to-agent-cyan"
+                  [style.height.%]="scrollPercent()"></div>
+              </div>
+              <div class="flex flex-col gap-2 text-white/45">
+                <span
+                  *ngFor="let step of steps; let idx = index"
+                  [ngClass]="{ 'text-agent-cyan': activeStep() === idx }">
+                  {{ step.id }}
+                </span>
+              </div>
+            </div>
+            <div class="step-canvas relative w-full max-w-3xl">
+              <div class="progress-orb pointer-events-none absolute -right-16 top-6 hidden h-40 w-40 flex-col items-center justify-center text-center text-xs uppercase tracking-[0.35em] text-white/60 sm:flex">
+                <span>Sync</span>
+                <p class="text-4xl font-semibold text-white">{{ scrollPercent() }}%</p>
+                <p class="text-[0.55rem] text-white/50">{{ currentStep().title }}</p>
+              </div>
+              <div class="pointer-events-none absolute inset-10 rounded-[32px] bg-agent-gradient blur-[120px] opacity-40"></div>
+              <div
+                *ngFor="let step of steps; let idx = index"
+                class="step-layer relative rounded-[36px] border border-white/15 bg-agent-ink/80 px-8 py-10 shadow-[0_35px_120px_rgba(0,0,0,0.55)] backdrop-blur-3xl">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-white/50">
+                  <span>{{ step.badge }}</span>
+                  <span>{{ step.id }}</span>
+                </div>
+                <h3 class="mt-5 text-3xl font-semibold sm:text-4xl">{{ step.title }}</h3>
+                <p class="mt-3 text-lg text-white/75">{{ step.headline }}</p>
+
+                <div class="mt-6 grid gap-4 md:grid-cols-2">
+                  <div
+                    *ngFor="let metric of step.metrics"
+                    class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <p class="text-[0.65rem] uppercase tracking-[0.4em] text-white/50">{{ metric.label }}</p>
+                    <p class="mt-3 text-2xl font-semibold" [ngClass]="metric.accentClass">{{ metric.value }}</p>
+                  </div>
+                </div>
+
+                <ul class="mt-6 flex flex-wrap gap-3 text-sm text-white/70">
+                  <li *ngFor="let detail of step.details" class="rounded-full border border-white/15 px-4 py-2">
+                    {{ detail }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 rounded-[32px] border border-white/10 bg-white/5 p-6">
+          <div class="flex flex-col gap-3 text-xs uppercase tracking-[0.35em] text-white/50 sm:flex-row sm:items-center sm:justify-between">
+            <span>Scroll telemetry</span>
+            <span>{{ scrollPercent() }}% synced</span>
+          </div>
+          <div class="mt-4 h-[4px] w-full rounded-full bg-white/10">
+            <div
+              class="h-full rounded-full bg-gradient-to-r from-agent-violet via-agent-fuchsia to-agent-cyan transition-all duration-500"
+              [style.width.%]="scrollPercent()"></div>
+          </div>
+          <div class="mt-6 grid gap-4 sm:grid-cols-3">
+            <div
+              *ngFor="let step of steps; let idx = index"
+              class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+              <p class="text-[0.55rem] uppercase tracking-[0.4em] text-white/50">{{ step.id }}</p>
+              <p class="mt-2 text-lg font-semibold text-white">{{ step.title }}</p>
+              <div class="mt-4 h-[3px] w-full rounded-full bg-white/10">
+                <div
+                  class="h-full rounded-full bg-gradient-to-r from-agent-violet to-agent-fuchsia transition-all duration-500"
+                  [style.width.%]="activeStep() > idx ? 100 : activeStep() === idx ? 65 : 8"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="space-y-6">
+      <div class="rounded-[32px] border border-white/10 bg-white/5 p-6 backdrop-blur-3xl">
+        <p class="text-[0.65rem] uppercase tracking-[0.4em] text-white/50">Currently running</p>
+        <h3 class="mt-3 text-2xl font-semibold text-white">{{ currentStep().title }}</h3>
+        <p class="mt-2 text-sm text-white/70">{{ currentStep().headline }}</p>
+        <div class="mt-4 space-y-3 text-sm text-white/65">
+          <div *ngFor="let detail of currentStep().details" class="flex items-center justify-between">
+            <span>{{ detail }}</span>
+            <span class="text-agent-emerald">live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <article
+          *ngFor="let step of steps; let idx = index"
+          class="rounded-[28px] border px-5 py-4 text-sm transition-all duration-500"
+          [ngClass]="{
+            'border-agent-cyan/60 bg-white/15 shadow-[0_25px_90px_rgba(124,93,255,0.35)]': activeStep() === idx,
+            'border-white/10 bg-white/5 text-white/70': activeStep() !== idx
+          }">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[0.6rem] uppercase tracking-[0.4em]">{{ step.badge }}</p>
+              <p class="mt-1 text-lg font-semibold text-white">{{ step.title }}</p>
+            </div>
+            <span class="text-xs text-white/60">0{{ idx + 1 }}</span>
+          </div>
+          <p class="mt-3 text-white/70">{{ step.headline }}</p>
+          <div class="mt-4 h-[3px] w-full rounded-full bg-white/10">
+            <div
+              class="h-full rounded-full bg-gradient-to-r from-agent-violet to-agent-fuchsia transition-all duration-500"
+              [style.width.%]="activeStep() >= idx ? 100 : 12"></div>
+          </div>
+        </article>
+      </div>
+    </aside>
+  </div>
+</section>

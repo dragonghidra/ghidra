@@ -1,3 +1,23 @@
+# Bo's ghidra
+
+Build & Install
+
+  - Install JDK (17+ works; 21 is fine): e.g., brew install openjdk@21 then export JAVA_HOME=$(/usr/libexec/java_home -v 21); ensure java -version works.
+  - (Optional) prime deps: ./gradlew -I gradle/support/fetchDependencies.gradle
+  - Build: ./gradlew buildGhidra (adds -x test if you need a faster, non-test build). Output: build/dist/ghidra_*_DEV.zip.
+  - Install: mkdir -p ~/ghidra-install && unzip build/dist/ghidra_*_DEV.zip -d ~/ghidra-install. Point to it with export GHIDRA_INSTALL_DIR=~/ghidra-install/ghidra_*_DEV.
+
+  Usage
+
+  - GUI: $GHIDRA_INSTALL_DIR/ghidraRun
+  - Headless: $GHIDRA_INSTALL_DIR/support/analyzeHeadless <proj_dir> <proj_name> -import <binary> [-postScript <script> ...]
+  - Orchestrator integration (new tools): set GHIDRA_INSTALL_DIR then run apt:
+      - apt "/tools ghidra_locate_installation"
+      - apt "/tools ghidra_write_script contents='<your ghidra script>'"
+      - apt "/tools ghidra_run_headless binary_path=bin/target.exe inline_script='<...>' analysis_args='[\"-overwrite\"]'"
+
+  If you’d like, I can install the JDK here and rerun the build.
+
 <img src="Ghidra/Features/Base/src/main/resources/images/GHIDRA_3.png" width="400">
 
 # Ghidra Software Reverse Engineering Framework

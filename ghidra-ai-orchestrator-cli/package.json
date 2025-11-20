@@ -1,0 +1,84 @@
+{
+  "name": "apt-cli",
+  "version": "1.0.6",
+  "description": "Modular APT CLI with general + APT Code profiles, pluggable providers, and guardrails encoded via src/contracts/schemas/agent-rules.schema.json",
+  "main": "dist/bin/apt.js",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "agents",
+    "LICENSE",
+    "scripts/preinstall-clean-bins.mjs",
+    "scripts/health-check.mjs",
+    "scripts/complexity-validation.mjs"
+  ],
+  "bin": {
+    "apt": "dist/bin/apt.js"
+  },
+  "scripts": {
+    "preinstall": "node scripts/preinstall-clean-bins.mjs",
+    "clean": "node -e \"const { rmSync } = require('fs'); try { rmSync('dist', { recursive: true, force: true, maxRetries: 5 }); } catch (error) { if (error && error.code !== 'ENOENT') throw error; }\"",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "prepare": "npm run build",
+    "postbuild": "node scripts/postbuild.mjs",
+    "dev": "node --loader ts-node/esm src/bin/apt.ts",
+    "dev:watch": "node --watch --loader ts-node/esm src/bin/apt.ts",
+    "start": "node dist/bin/apt.js",
+    "test": "node --loader ts-node/esm --test test/*.test.ts",
+    "test:watch": "node --watch --loader ts-node/esm --test test/*.test.ts",
+    "lint": "eslint src/**/*.ts --max-warnings 0",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "type-check": "tsc --noEmit",
+    "health-check": "node scripts/health-check.mjs",
+    "complexity-check": "node scripts/complexity-validation.mjs",
+    "complexity-check:legacy": "npm run lint && npm run type-check",
+    "quality-gate": "npm run complexity-check && npm run health-check && npm run type-check"
+  },
+  "apt": {
+    "rulebookSchema": "src/contracts/schemas/agent-rules.schema.json"
+  },
+  "keywords": [
+    "cli",
+    "codex",
+    "openai",
+    "ai",
+    "agent",
+    "productivity"
+  ],
+  "author": "APT Security <support@apt.dev>",
+  "license": "MIT",
+  "homepage": "https://github.com/dragonghidra/apt-cli-RE-claude-code#readme",
+  "bugs": {
+    "url": "https://github.com/dragonghidra/apt-cli-RE-claude-code/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dragonghidra/apt-cli-RE-claude-code.git"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/gradient-string": "^1.1.6",
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "eslint-plugin-complexity": "^3.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@google/genai": "^1.29.1",
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+    "cli-spinners": "^2.9.2",
+    "gradient-string": "^2.0.2",
+    "nanospinner": "^1.1.0",
+    "openai": "^4.77.3",
+    "ora": "^5.4.1",
+    "typescript": "^5.3.3"
+  }
+}

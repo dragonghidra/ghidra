@@ -1,0 +1,178 @@
+.connector-gallery {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: radial-gradient(circle at 20% 20%, rgba(99, 181, 255, 0.12), transparent 55%),
+    linear-gradient(180deg, rgba(5, 6, 18, 0.8), rgba(3, 5, 14, 0.95));
+  color: #f4f4f5;
+}
+
+.connector-gallery__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.connector-gallery__head h2 {
+  margin-bottom: 0.2rem;
+}
+
+.connector-gallery__head p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.4em;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.refresh-button {
+  padding: 0.65rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(8, 12, 24, 0.75);
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.connector-gallery__error {
+  margin-top: 1rem;
+  color: #ff8c8c;
+}
+
+.connector-grid {
+  margin-top: 2rem;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.connector-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.35);
+  min-height: 15rem;
+}
+
+.connector-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.connector-id {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.connector-kind {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: capitalize;
+  margin: 0;
+}
+
+.connector-description {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.9rem;
+}
+
+.connector-status {
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.35em;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.connector-status--ready {
+  background: rgba(77, 225, 176, 0.15);
+  color: #4de1b0;
+}
+
+.connector-status--info {
+  background: rgba(99, 181, 255, 0.2);
+  color: #8bc3ff;
+}
+
+.connector-status--danger {
+  background: rgba(255, 118, 116, 0.2);
+  color: #ff8c8c;
+}
+
+.connector-status--muted {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.connector-highlight-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+}
+
+.connector-highlight-list li {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.highlight-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.highlight-value {
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.playbook-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.playbook-chip {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.35em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.connector-gallery__empty {
+  margin-top: 2rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}

@@ -1,0 +1,56 @@
+<section class="run-board">
+  <header class="run-board__head">
+    <div>
+      <p class="eyebrow">Background agents</p>
+      <h2>Firebase-hosted runs</h2>
+    </div>
+    <form class="run-form" (submit)="onSubmit($event)">
+      <label>
+        <span class="sr-only">Prompt</span>
+        <input
+          type="text"
+          name="prompt"
+          [value]="prompt()"
+          placeholder="Draft a quick agent prompt..."
+          (input)="onPromptInput($event)"
+          [disabled]="creating()"
+        />
+      </label>
+      <button type="submit" [disabled]="creating() || !prompt().trim()">
+        {{ creating() ? 'launching…' : 'launch run' }}
+      </button>
+    </form>
+  </header>
+
+  <p class="run-board__error" *ngIf="error() as runError">{{ runError }}</p>
+
+  <div class="run-board__list" *ngIf="runs().length; else emptyRuns">
+    <article class="run-card" *ngFor="let run of runs()">
+      <header>
+        <p class="run-card__id">{{ run.id }}</p>
+        <span class="status-pill" [ngClass]="statusClass()(run.status)">{{ run.status }}</span>
+      </header>
+      <p class="run-card__prompt">{{ run.prompt }}</p>
+      <dl>
+        <div>
+          <dt>Profile</dt>
+          <dd>{{ run.profileId }}</dd>
+        </div>
+        <div>
+          <dt>Connector</dt>
+          <dd>{{ run.connectorId }}</dd>
+        </div>
+        <div>
+          <dt>Created</dt>
+          <dd>{{ run.createdAt | date: 'short' }}</dd>
+        </div>
+      </dl>
+    </article>
+  </div>
+
+  <ng-template #emptyRuns>
+    <p class="run-board__empty">
+      {{ isLoading() ? 'Loading your previous runs…' : 'No runs yet. Launch your first agent above.' }}
+    </p>
+  </ng-template>
+</section>

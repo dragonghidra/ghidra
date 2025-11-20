@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function projectPath(projectId) {
+    return /databases/$(database)/documents/projects/$(projectId);
+  }
+
+  function projectRecord(projectId) {
+    return get(projectPath(projectId));
+  }
+
+  function hasProjectRole(projectId, allowedRoles) {
+    return isSignedIn()
+      && projectRecord(projectId).exists()
+      && projectRecord(projectId).data.members[request.auth.uid] in allowedRoles;
+  }
+
+  function isProjectMember(projectId) {
+    return hasProjectRole(projectId, ['admin', 'editor', 'viewer']);
+  }
+
+  function isProjectEditor(projectId) {
+    return hasProjectRole(projectId, ['admin', 'editor']);
+  }
+
+  function isProjectAdmin(projectId) {
+    return hasProjectRole(projectId, ['admin']);
+  }
+
+  function isRunExecutor() {
+    return request.auth != null && request.auth.token.runExecutor == true;
+  }
+
+  function isServerActor() {
+    return request.auth != null && request.auth.token.server == true;
+  }
+
+  function statusIsOneOf(status, allowed) {
+    return status in allowed;
+  }
+
+  match /databases/{database}/documents {
+    match /projects/{projectId} {
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.members[request.auth.uid] == 'admin';
+
+      allow read: if isProjectMember(projectId);
+
+      allow update: if isProjectAdmin(projectId);
+
+      allow delete: if false;
+    }
+
+    match /projects/{projectId}/agentRuns/{runId} {
+      allow read, list: if isProjectMember(projectId);
+
+      allow create: if isProjectEditor(projectId)
+        && request.resource.data.projectId == projectId
+        && request.resource.data.createdBy == request.auth.uid
+        && statusIsOneOf(request.resource.data.status, ['draft', 'queued']);
+
+      allow update: if (isProjectEditor(projectId) && resource.data.createdBy == request.auth.uid)
+        || isRunExecutor()
+        || isServerActor();
+
+      allow delete: if isProjectAdmin(projectId);
+    }
+
+    match /projects/{projectId}/agentRuns/{runId}/events/{eventId} {
+      allow read, list: if isProjectMember(projectId);
+      allow create: if isRunExecutor() || isServerActor();
+      allow update, delete: if isServerActor();
+    }
+
+    match /projects/{projectId}/agentRuns/{runId}/commands/{commandId} {
+      allow read: if isProjectMember(projectId);
+
+      allow create: if isProjectMember(projectId)
+        && request.resource.data.authorUid == request.auth.uid;
+
+      allow update: if isRunExecutor() || isServerActor();
+
+      allow delete: if false;
+    }
+
+    match /projects/{projectId}/connectors/{connectorId} {
+      allow read, list: if isProjectMember(projectId);
+      allow create, update, delete: if isProjectAdmin(projectId);
+    }
+
+    match /agentProfiles/{profileId} {
+      allow read, list: if isSignedIn();
+      allow write: if isServerActor();
+    }
+  }
+}

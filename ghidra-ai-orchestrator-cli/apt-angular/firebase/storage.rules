@@ -1,0 +1,27 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function projectDoc(projectId) {
+      return firestore.get(/databases/(default)/documents/projects/$(projectId));
+    }
+
+    function hasProjectRole(projectId, roles) {
+      return isSignedIn()
+        && projectDoc(projectId).exists()
+        && projectDoc(projectId).data.members[request.auth.uid] in roles;
+    }
+
+    match /projects/{projectId}/runs/{runId}/{allPaths=**} {
+      allow read: if hasProjectRole(projectId, ['admin', 'editor', 'viewer']);
+      allow write: if request.auth.token.runExecutor == true || hasProjectRole(projectId, ['admin']);
+    }
+
+    match /public/{allPaths=**} {
+      allow read;
+    }
+  }
+}

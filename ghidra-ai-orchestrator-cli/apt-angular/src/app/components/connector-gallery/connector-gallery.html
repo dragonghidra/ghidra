@@ -1,0 +1,57 @@
+<section class="connector-gallery">
+  <header class="connector-gallery__head">
+    <div>
+      <p class="eyebrow">Connector catalog</p>
+      <h2>Cloud agent playbooks</h2>
+      <p>
+        These entries mirror the Firestore connectors seeded by the bootstrap script so you can see
+        which runtimes, queues, and playbooks are available before launching a run.
+      </p>
+    </div>
+    <button class="refresh-button" type="button" (click)="refresh()" [disabled]="isLoading()">
+      {{ isLoading() ? 'syncing…' : 'refresh catalog' }}
+    </button>
+  </header>
+
+  <p class="connector-gallery__error" *ngIf="error() as connectorError">{{ connectorError }}</p>
+
+  <div class="connector-grid" *ngIf="connectors().length; else emptyConnectors">
+    <article class="connector-card" *ngFor="let connector of connectors()">
+      <header>
+        <div>
+          <p class="connector-id">{{ connector.id }}</p>
+          <h3>{{ connector.name }}</h3>
+          <p class="connector-kind">{{ connector.kind }}</p>
+        </div>
+        <span class="connector-status" [ngClass]="statusClass(connector.status)">
+          {{ connector.status }}
+        </span>
+      </header>
+
+      <p class="connector-description">{{ connector.description }}</p>
+
+      <ul class="connector-highlight-list" *ngIf="connector.highlights.length">
+        <li *ngFor="let highlight of connector.highlights">
+          <span class="highlight-label">{{ highlight.label }}</span>
+          <span class="highlight-value">{{ highlight.value }}</span>
+        </li>
+      </ul>
+
+      <div class="playbook-list" *ngIf="connector.playbooks.length">
+        <span
+          class="playbook-chip"
+          *ngFor="let playbook of connector.playbooks"
+          [title]="playbook.description || ''"
+        >
+          {{ playbook.id }}
+        </span>
+      </div>
+    </article>
+  </div>
+
+  <ng-template #emptyConnectors>
+    <p class="connector-gallery__empty">
+      {{ isLoading() ? 'Loading connector catalog…' : 'Run the bootstrap script to seed connectors.' }}
+    </p>
+  </ng-template>
+</section>

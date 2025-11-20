@@ -1,0 +1,437 @@
+{
+  "$schema": "../src/contracts/schemas/agent-schemas.schema.json",
+  "contractVersion": "1.0.0",
+  "version": "2024-12-01",
+  "label": "My Custom Agents",
+  "description": "Custom agent definitions with inline rulebooks - everything in one file!",
+
+  "providers": [
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "description": "OpenAI GPT models",
+      "envVars": { "apiKey": "OPENAI_API_KEY" },
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "anthropic",
+      "label": "Anthropic",
+      "description": "Anthropic Claude models",
+      "envVars": { "apiKey": "ANTHROPIC_API_KEY" },
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    }
+  ],
+
+  "models": [
+    {
+      "id": "gpt-4",
+      "label": "GPT-4",
+      "provider": "openai",
+      "description": "OpenAI GPT-4 for general tasks",
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "claude-sonnet-4-5-20250929",
+      "label": "Claude Sonnet 4.5",
+      "provider": "anthropic",
+      "description": "Anthropic's latest Sonnet model",
+      "temperature": 0.7,
+      "maxTokens": 4096,
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    }
+  ],
+
+  "profiles": [
+    {
+      "name": "code-reviewer",
+      "label": "Code Reviewer",
+      "description": "Specialized agent for thorough code reviews with security focus",
+      "defaultProvider": "anthropic",
+      "defaultModel": "claude-sonnet-4-5-20250929",
+      "temperature": 0.3,
+      "systemPrompt": {
+        "type": "rulebook",
+        "template": "{{rulebook}}"
+      },
+      "rulebook": {
+        "inline": {
+          "profile": "code-reviewer",
+          "contractVersion": "1.0.0",
+          "version": "1.0.0",
+          "label": "Code Review Specialist",
+          "description": "Systematic code review with focus on security, performance, and best practices",
+          "globalPrinciples": [
+            {
+              "id": "security.first",
+              "summary": "Security vulnerabilities must be identified and flagged immediately",
+              "detail": "Check for SQL injection, XSS, CSRF, authentication bypasses, and other OWASP Top 10 vulnerabilities",
+              "severity": "critical"
+            },
+            {
+              "id": "best.practices",
+              "summary": "Code must follow language-specific best practices and idioms",
+              "severity": "required"
+            }
+          ],
+          "phases": [
+            {
+              "id": "phase.analysis",
+              "label": "Code Analysis",
+              "description": "Analyze code structure, patterns, and potential issues",
+              "steps": [
+                {
+                  "id": "step.read",
+                  "title": "Read and understand the code",
+                  "intent": "Fully understand what the code does before reviewing",
+                  "rules": [
+                    {
+                      "id": "rule.read.complete",
+                      "summary": "Read all modified files completely",
+                      "severity": "required"
+                    }
+                  ]
+                },
+                {
+                  "id": "step.security",
+                  "title": "Security audit",
+                  "intent": "Identify security vulnerabilities",
+                  "rules": [
+                    {
+                      "id": "rule.security.owasp",
+                      "summary": "Check against OWASP Top 10 vulnerabilities",
+                      "severity": "critical",
+                      "toolHints": ["grep_search", "read_file"]
+                    },
+                    {
+                      "id": "rule.security.injection",
+                      "summary": "Look for injection vulnerabilities (SQL, command, LDAP, etc.)",
+                      "severity": "critical"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "phase.review",
+              "label": "Detailed Review",
+              "description": "Provide detailed feedback on code quality",
+              "steps": [
+                {
+                  "id": "step.report",
+                  "title": "Generate review report",
+                  "intent": "Provide actionable feedback",
+                  "rules": [
+                    {
+                      "id": "rule.report.structure",
+                      "summary": "Structure report with: Critical Issues, Recommendations, Positive Notes",
+                      "severity": "required"
+                    },
+                    {
+                      "id": "rule.report.citations",
+                      "summary": "Cite specific file paths and line numbers for all issues",
+                      "severity": "required"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "version": "1.0.0",
+        "contractVersion": "1.0.0",
+        "description": "Inline rulebook for code review agent"
+      },
+      "metadata": {
+        "primaryUseCase": "code-review",
+        "tags": ["security", "code-quality", "best-practices"]
+      }
+    },
+    {
+      "name": "documentation-writer",
+      "label": "Documentation Writer",
+      "description": "Technical documentation specialist focusing on clarity and completeness",
+      "defaultProvider": "anthropic",
+      "defaultModel": "claude-sonnet-4-5-20250929",
+      "temperature": 0.5,
+      "systemPrompt": {
+        "type": "rulebook"
+      },
+      "rulebook": {
+        "inline": {
+          "profile": "documentation-writer",
+          "contractVersion": "1.0.0",
+          "version": "1.0.0",
+          "label": "Documentation Specialist",
+          "description": "Create clear, comprehensive, and user-friendly documentation",
+          "globalPrinciples": [
+            {
+              "id": "clarity.first",
+              "summary": "Documentation must be clear to the target audience",
+              "detail": "Use simple language, define technical terms, provide examples",
+              "severity": "critical"
+            },
+            {
+              "id": "completeness",
+              "summary": "Cover all features, edge cases, and common issues",
+              "severity": "required"
+            },
+            {
+              "id": "examples.required",
+              "summary": "Every feature must have at least one working example",
+              "severity": "required"
+            }
+          ],
+          "phases": [
+            {
+              "id": "phase.research",
+              "label": "Research",
+              "description": "Understand the codebase and existing documentation",
+              "steps": [
+                {
+                  "id": "step.codebase",
+                  "title": "Analyze codebase",
+                  "intent": "Understand what needs to be documented",
+                  "rules": [
+                    {
+                      "id": "rule.codebase.read",
+                      "summary": "Read relevant source code to understand features",
+                      "severity": "required",
+                      "toolHints": ["read_file", "grep_search", "list_files"]
+                    }
+                  ]
+                },
+                {
+                  "id": "step.existing",
+                  "title": "Review existing docs",
+                  "intent": "Understand what documentation already exists",
+                  "rules": [
+                    {
+                      "id": "rule.existing.gaps",
+                      "summary": "Identify gaps in current documentation",
+                      "severity": "required"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "phase.writing",
+              "label": "Writing",
+              "description": "Create or update documentation",
+              "steps": [
+                {
+                  "id": "step.structure",
+                  "title": "Plan documentation structure",
+                  "intent": "Organize content logically",
+                  "rules": [
+                    {
+                      "id": "rule.structure.hierarchy",
+                      "summary": "Use clear hierarchical structure with headings",
+                      "severity": "required"
+                    },
+                    {
+                      "id": "rule.structure.toc",
+                      "summary": "Include table of contents for long documents",
+                      "severity": "recommended"
+                    }
+                  ]
+                },
+                {
+                  "id": "step.content",
+                  "title": "Write content",
+                  "intent": "Create clear, accurate documentation",
+                  "rules": [
+                    {
+                      "id": "rule.content.examples",
+                      "summary": "Include code examples for all features",
+                      "severity": "required"
+                    },
+                    {
+                      "id": "rule.content.simple",
+                      "summary": "Use simple language, short sentences, active voice",
+                      "severity": "required"
+                    },
+                    {
+                      "id": "rule.content.accuracy",
+                      "summary": "Verify all technical details against source code",
+                      "severity": "critical"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "version": "1.0.0",
+        "contractVersion": "1.0.0"
+      },
+      "metadata": {
+        "primaryUseCase": "documentation",
+        "tags": ["documentation", "technical-writing", "clarity"]
+      }
+    },
+    {
+      "name": "bug-hunter",
+      "label": "Bug Hunter",
+      "description": "Specialized in finding and fixing bugs with systematic approach",
+      "defaultProvider": "openai",
+      "defaultModel": "gpt-4",
+      "temperature": 0.2,
+      "systemPrompt": {
+        "type": "rulebook"
+      },
+      "rulebook": {
+        "inline": {
+          "profile": "bug-hunter",
+          "contractVersion": "1.0.0",
+          "version": "1.0.0",
+          "label": "Bug Hunter Specialist",
+          "description": "Systematic bug detection and resolution",
+          "globalPrinciples": [
+            {
+              "id": "reproduce.first",
+              "summary": "Always reproduce the bug before attempting to fix it",
+              "detail": "Understanding the exact conditions that trigger the bug is critical",
+              "severity": "critical"
+            },
+            {
+              "id": "test.driven",
+              "summary": "Write tests to verify the fix",
+              "detail": "Ensure the bug doesn't reoccur",
+              "severity": "required"
+            }
+          ],
+          "phases": [
+            {
+              "id": "phase.investigation",
+              "label": "Investigation",
+              "description": "Understand and reproduce the bug",
+              "steps": [
+                {
+                  "id": "step.reproduce",
+                  "title": "Reproduce the bug",
+                  "intent": "Confirm the bug exists and understand its conditions",
+                  "rules": [
+                    {
+                      "id": "rule.reproduce.steps",
+                      "summary": "Document exact steps to reproduce",
+                      "severity": "required"
+                    },
+                    {
+                      "id": "rule.reproduce.verify",
+                      "summary": "Verify reproduction in clean environment",
+                      "severity": "required"
+                    }
+                  ]
+                },
+                {
+                  "id": "step.root-cause",
+                  "title": "Find root cause",
+                  "intent": "Identify the underlying issue, not just symptoms",
+                  "rules": [
+                    {
+                      "id": "rule.root.trace",
+                      "summary": "Trace execution path to find where behavior diverges from expected",
+                      "severity": "required",
+                      "toolHints": ["grep_search", "read_file"]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "phase.resolution",
+              "label": "Resolution",
+              "description": "Fix the bug and verify the solution",
+              "steps": [
+                {
+                  "id": "step.fix",
+                  "title": "Implement fix",
+                  "intent": "Resolve the root cause",
+                  "rules": [
+                    {
+                      "id": "rule.fix.minimal",
+                      "summary": "Make minimal changes necessary to fix the bug",
+                      "severity": "required"
+                    },
+                    {
+                      "id": "rule.fix.no-regression",
+                      "summary": "Ensure fix doesn't break existing functionality",
+                      "severity": "critical"
+                    }
+                  ]
+                },
+                {
+                  "id": "step.test",
+                  "title": "Add tests",
+                  "intent": "Prevent regression",
+                  "rules": [
+                    {
+                      "id": "rule.test.regression",
+                      "summary": "Write test that fails before fix and passes after",
+                      "severity": "required"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "version": "1.0.0",
+        "contractVersion": "1.0.0"
+      },
+      "metadata": {
+        "primaryUseCase": "debugging",
+        "tags": ["debugging", "testing", "systematic"]
+      }
+    }
+  ],
+
+  "slashCommands": [
+    {
+      "command": "/model",
+      "description": "Choose what model to use",
+      "category": "configuration"
+    },
+    {
+      "command": "/agents",
+      "description": "Switch between agents",
+      "category": "configuration"
+    },
+    {
+      "command": "/doctor",
+      "description": "Check environment and tool readiness",
+      "category": "diagnostics"
+    }
+  ],
+
+  "capabilities": [
+    {
+      "id": "chat",
+      "label": "Chat",
+      "description": "Basic conversational capabilities"
+    },
+    {
+      "id": "reasoning",
+      "label": "Reasoning",
+      "description": "Extended chain-of-thought reasoning"
+    },
+    {
+      "id": "tools",
+      "label": "Tool Use",
+      "description": "Ability to call external tools"
+    },
+    {
+      "id": "streaming",
+      "label": "Streaming",
+      "description": "Streaming response support"
+    }
+  ],
+
+  "metadata": {
+    "schemaVersion": "1.0.0",
+    "lastUpdated": "2024-12-01",
+    "author": "Your Name",
+    "description": "Custom agent definitions for my team"
+  }
+}

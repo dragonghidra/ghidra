@@ -1,0 +1,199 @@
+{
+  "$schema": "./schemas/tool-selection.schema.json",
+  "contractVersion": "1.0.0",
+  "profile": "apt-cli",
+  "version": "2024.07.17",
+  "label": "APT CLI tool manifest",
+  "description": "Canonical list of capability suites, plugin bindings, and scope declarations for the default runtime.",
+  "options": [
+    {
+      "id": "filesystem",
+      "label": "File operations",
+      "description": "Read, write, list, and search files inside the workspace.",
+      "defaultEnabled": true,
+      "category": "core",
+      "scopes": ["filesystem:read", "filesystem:write"],
+      "pluginIds": ["tool.filesystem.local"]
+    },
+    {
+      "id": "edit",
+      "label": "File editing",
+      "description": "Surgical file editing via exact string replacement. More efficient than full file rewrites.",
+      "defaultEnabled": true,
+      "category": "core",
+      "scopes": ["filesystem:write"],
+      "pluginIds": ["tool.edit"]
+    },
+    {
+      "id": "notebook",
+      "label": "Jupyter notebooks",
+      "description": "Edit Jupyter .ipynb notebook files with cell-level operations (replace, insert, delete).",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["filesystem:write", "analysis:notebook"],
+      "pluginIds": ["tool.notebook"]
+    },
+    {
+      "id": "search",
+      "label": "Repository search",
+      "description": "Structural and glob-aware search helpers (grep, find definition).",
+      "defaultEnabled": true,
+      "category": "core",
+      "scopes": ["analysis:code"],
+      "pluginIds": ["tool.search.local"]
+    },
+    {
+      "id": "glob",
+      "label": "Pattern matching",
+      "description": "Fast file pattern matching with glob patterns, sorted by modification time.",
+      "defaultEnabled": true,
+      "category": "core",
+      "scopes": ["filesystem:read"],
+      "pluginIds": ["tool.glob"]
+    },
+    {
+      "id": "bash",
+      "label": "Shell access",
+      "description": "Run commands inside a sandboxed Bash shell.",
+      "defaultEnabled": true,
+      "category": "core",
+      "scopes": ["process:exec"],
+      "pluginIds": ["tool.bash.local"]
+    },
+    {
+      "id": "repo-checks",
+      "label": "Repo checks",
+      "description": "Run npm-based repo validation commands (test/build/lint).",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["analysis:testing", "analysis:quality"],
+      "pluginIds": ["tool.repo-checks.local"]
+    },
+    {
+      "id": "code-analysis",
+      "label": "Code analysis",
+      "description": "Advanced code structure analysis, dependency tracking, and complexity metrics.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["analysis:code"],
+      "pluginIds": ["tool.code-analysis.structural"]
+    },
+    {
+      "id": "code-quality",
+      "label": "Code quality",
+      "description": "Lint orchestration, maintainability insights, and rule inspection.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["analysis:quality"],
+      "pluginIds": ["tool.code-quality.linting"]
+    },
+    {
+      "id": "refactoring",
+      "label": "Refactoring assistants",
+      "description": "Hotspot detection, refactor planning, and impact analysis tools.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["planning:refactor"],
+      "pluginIds": ["tool.refactoring.assistant"]
+    },
+    {
+      "id": "dependency-security",
+      "label": "Dependency security",
+      "description": "Dependency summaries, npm audit execution, and lockfile health checks.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["analysis:dependency", "analysis:security"],
+      "pluginIds": ["tool.dependency.security"]
+    },
+    {
+      "id": "pentest",
+      "label": "Penetration testing",
+      "description": "Network and web reconnaissance plus defensive baselines (nmap/nuclei/ffuf powered).",
+      "defaultEnabled": false,
+      "category": "security",
+      "scopes": ["analysis:security", "process:exec"],
+      "pluginIds": ["tool.security.pentest"]
+    },
+    {
+      "id": "ghidra-automation",
+      "label": "Ghidra automation",
+      "description": "Headless Ghidra import/analysis with inline or reusable scripts for vuln research and exploit prep.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["analysis:binary", "analysis:security"],
+      "pluginIds": ["tool.ghidra.headless"]
+    },
+    {
+      "id": "testing",
+      "label": "Testing & coverage",
+      "description": "Test template helpers plus coverage orchestration and reporting.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["analysis:testing"],
+      "pluginIds": ["tool.testing.coverage"]
+    },
+    {
+      "id": "development",
+      "label": "Development workflow",
+      "description": "Development workflow tools for testing, building, and dependency management.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["analysis:testing", "analysis:code"],
+      "pluginIds": ["tool.development.workflow"]
+    },
+    {
+      "id": "task-management",
+      "label": "Task management",
+      "description": "Task tracking and planning tools for organizing complex multi-step work.",
+      "defaultEnabled": true,
+      "category": "core",
+      "scopes": ["planning:tasks"],
+      "pluginIds": ["tool.task-management.local"]
+    },
+    {
+      "id": "planning",
+      "label": "Workflow planning",
+      "description": "Planning phase management and workflow structuring tools.",
+      "defaultEnabled": true,
+      "category": "core",
+      "scopes": ["planning:workflow"],
+      "pluginIds": ["tool.planning"]
+    },
+    {
+      "id": "interaction",
+      "label": "User interaction",
+      "description": "Interactive question and clarification tools for gathering user preferences and decisions.",
+      "defaultEnabled": true,
+      "category": "core",
+      "scopes": ["interaction:questions"],
+      "pluginIds": ["tool.interaction.local"]
+    },
+    {
+      "id": "web",
+      "label": "Web tools",
+      "description": "Web content fetching and search tools for accessing online information and documentation.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["web:fetch", "web:search"],
+      "pluginIds": ["tool.web.local"]
+    },
+    {
+      "id": "skills",
+      "label": "Skill library",
+      "description": "Discover and load Claude Skill packages (SKILL.md) to reuse domain-specific workflows and policies.",
+      "defaultEnabled": true,
+      "category": "analysis",
+      "scopes": ["analysis:knowledge"],
+      "pluginIds": ["tool.skills.loader"]
+    },
+    {
+      "id": "mcp",
+      "label": "MCP connectors",
+      "description": "Model Context Protocol servers defined via .mcp.json files that expose additional domain tools.",
+      "defaultEnabled": false,
+      "category": "integrations",
+      "scopes": ["integrations:mcp"],
+      "pluginIds": ["tool.mcp.bridge"]
+    }
+  ]
+}

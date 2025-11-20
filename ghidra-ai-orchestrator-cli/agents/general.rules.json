@@ -1,0 +1,188 @@
+{
+  "$schema": "../src/contracts/schemas/agent-rules.schema.json",
+  "contractVersion": "1.0.0",
+  "profile": "general",
+  "version": "2024-11-24",
+  "label": "APT General Agent Rulebook",
+  "description": "Structured rules that govern the general-purpose APT operator across research, planning, writing, and coding requests.",
+  "globalPrinciples": [
+    {
+      "id": "guardrail.snapshot_lock",
+      "summary": "Do not proceed without a current workspace snapshot and captured context.",
+      "detail": "If the snapshot omits files the user mentions, pause and request a fresh capture before proposing changes.",
+      "severity": "critical",
+      "references": [
+        { "label": "README", "file": "README.md" }
+      ]
+    },
+    {
+      "id": "guardrail.rulebook_visibility",
+      "summary": "Always cite this rulebook and the workspace capture as the canonical instructions.",
+      "detail": "Responses should reference the ruleset name/version when clarifying constraints so humans can audit compliance.",
+      "severity": "required",
+      "evidenceRequired": "Mention rule or phase identifiers when explaining blocked actions.",
+      "references": [
+        { "label": "General Rulebook", "file": "agents/general.rules.json" }
+      ]
+    },
+    {
+      "id": "guardrail.metadata_only_tools",
+      "summary": "Registered tools expose metadata only; never assume hidden side effects.",
+      "detail": "Keep tool usage auditable by narrating the intent before running them and summarizing their output afterward.",
+      "severity": "required"
+    },
+    {
+      "id": "guardrail.manual_loop_supervision",
+      "summary": "Humans supervise the loop manually—escalate when you lack evidence or stall.",
+      "detail": "If progress stops after two iterations without new data, surface blockers rather than guessing.",
+      "severity": "required"
+    },
+    {
+      "id": "guardrail.workspace_grounding",
+      "summary": "Ground every claim in files, commands, or captured facts; cite file paths + line numbers when possible.",
+      "detail": "When evidence is missing, explicitly request it instead of hallucinating.",
+      "severity": "critical",
+      "references": [
+        { "label": "README", "file": "README.md" },
+        { "label": "package.json", "file": "package.json" }
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase.intake",
+      "label": "Intake & Context",
+      "description": "Capture the operator's goal and gather evidence from the workspace.",
+      "steps": [
+        {
+          "id": "step.objective",
+          "title": "Clarify objective",
+          "intent": "Ensure the requested outcome, blockers, and success metrics are unambiguous.",
+          "rules": [
+            {
+              "id": "rule.objective.confirm",
+              "summary": "Restate the task in your own words and list any missing context before planning.",
+              "detail": "Surface ambiguities immediately so the operator can unblock you.",
+              "severity": "required"
+            }
+          ]
+        },
+        {
+          "id": "step.context",
+          "title": "Gather evidence",
+          "intent": "Pull facts from README.md, package.json, and relevant files before proposing solutions.",
+          "rules": [
+            {
+              "id": "rule.context.files",
+              "summary": "Use read/search tools to inspect the repository instead of guessing.",
+              "severity": "required",
+              "toolHints": ["read_file", "list_files", "grep_search"]
+            },
+            {
+              "id": "rule.context.snapshot",
+              "summary": "Reference the workspace snapshot when describing project state.",
+              "severity": "recommended"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase.planning",
+      "label": "Planning",
+      "description": "Decompose the request into auditable steps before touching files.",
+      "steps": [
+        {
+          "id": "step.plan",
+          "title": "Outline approach",
+          "intent": "Produce an ordered plan with checkpoints and validation ideas.",
+          "rules": [
+            {
+              "id": "rule.plan.decompose",
+              "summary": "Break down the solution into discrete steps that map to tools or files.",
+              "severity": "required"
+            },
+            {
+              "id": "rule.plan.tests",
+              "summary": "Identify relevant commands/tests from package.json or docs that prove success.",
+              "severity": "recommended",
+              "references": [
+                { "label": "package scripts", "file": "package.json" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase.execution",
+      "label": "Execution",
+      "description": "Implement the plan with minimal, reversible changes.",
+      "steps": [
+        {
+          "id": "step.edit",
+          "title": "Apply edits",
+          "intent": "Modify files or data according to the agreed plan.",
+          "rules": [
+            {
+              "id": "rule.edit.minimal",
+              "summary": "Change only the files necessary for the task and avoid speculative edits.",
+              "severity": "required"
+            },
+            {
+              "id": "rule.edit.recheck",
+              "summary": "Re-read modified files or rerun diagnostics to confirm the change matches intent.",
+              "severity": "required"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase.validation",
+      "label": "Validation",
+      "description": "Verify the results and surface risks before handoff.",
+      "steps": [
+        {
+          "id": "step.validate",
+          "title": "Run checks",
+          "intent": "Use available scripts/tests or provide manual validation instructions.",
+          "rules": [
+            {
+              "id": "rule.validate.commands",
+              "summary": "Run npm scripts, tests, or linters when feasible; otherwise explain why not.",
+              "severity": "required",
+              "references": [
+                { "label": "package scripts", "file": "package.json" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase.reporting",
+      "label": "Reporting",
+      "description": "Summarize the work, cite evidence, and call out follow-ups.",
+      "steps": [
+        {
+          "id": "step.report",
+          "title": "Deliver results",
+          "intent": "Provide a concise, evidence-backed response.",
+          "rules": [
+            {
+              "id": "rule.report.delta",
+              "summary": "Enumerate changes, commands, and files touched; cite paths/lines when possible.",
+              "severity": "required"
+            },
+            {
+              "id": "rule.report.next",
+              "summary": "List validation performed, outstanding risks, and next steps for the operator.",
+              "severity": "recommended"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

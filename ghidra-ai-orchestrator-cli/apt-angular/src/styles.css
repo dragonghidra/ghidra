@@ -1,0 +1,386 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-agent-night text-white min-h-screen font-sans antialiased;
+    background-image: linear-gradient(120deg, rgba(11, 19, 41, 0.95), rgba(5, 7, 13, 0.94)),
+      radial-gradient(circle at 10% 20%, rgba(124, 93, 255, 0.5), transparent 45%),
+      radial-gradient(circle at 70% 0%, rgba(94, 242, 255, 0.3), transparent 55%);
+    background-blend-mode: normal, screen, normal;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(124, 93, 255, 0.3), transparent 60%);
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  ::selection {
+    background: rgba(124, 93, 255, 0.5);
+    color: #fff;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-3xl border border-white/10 shadow-glass-xl;
+  }
+
+  .subtle-border {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .stacked-bg {
+    @apply min-h-screen bg-[#010409];
+    background-image: radial-gradient(circle at 15% 20%, rgba(124, 93, 255, 0.25), transparent 55%),
+      radial-gradient(circle at 80% 0%, rgba(94, 242, 255, 0.18), transparent 60%),
+      linear-gradient(180deg, rgba(2, 4, 9, 0.95), rgba(2, 4, 9, 0.98));
+  }
+
+  .shell-container {
+    @apply mx-auto flex max-w-6xl flex-col gap-10 px-6 py-10 lg:py-16;
+  }
+
+  .hero {
+    @apply space-y-5 text-center lg:text-left;
+  }
+
+  .hero-eyebrow {
+    @apply text-xs uppercase tracking-[0.4em] text-white/60;
+  }
+
+  .hero h1 {
+    @apply text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl;
+  }
+
+  .hero p {
+    @apply text-base text-white/70 lg:text-lg;
+  }
+
+  .hero-chips {
+    @apply flex flex-wrap items-center justify-center gap-3 pt-2 text-[0.65rem] uppercase tracking-[0.3em] text-white/70 lg:justify-start;
+  }
+
+  .settings-button {
+    @apply mt-4 rounded-full border border-white/20 px-4 py-1 text-[0.65rem] uppercase tracking-[0.35em] text-white/80 transition hover:bg-white/10;
+  }
+
+  .hud-chip {
+    @apply rounded-full border border-white/20 px-4 py-1.5 text-white/80;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .main-grid {
+    @apply grid gap-6 lg:grid-cols-[2.1fr_0.9fr];
+  }
+
+  .terminal-shell {
+    @apply rounded-3xl border border-white/10 bg-[#05070f]/80 shadow-[0_35px_120px_rgba(0,0,0,0.45)];
+    backdrop-filter: blur(18px);
+  }
+
+  .terminal-head {
+    @apply flex flex-wrap items-center justify-between gap-4 border-b border-white/5 px-6 py-5;
+    background: linear-gradient(120deg, rgba(124, 93, 255, 0.1), rgba(94, 242, 255, 0.05));
+  }
+
+  .head-left {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .prompt-chip {
+    @apply rounded-full border border-white/15 px-3 py-1 font-mono text-[0.65rem] uppercase tracking-[0.35em] text-white/70;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .head-meta {
+    @apply flex flex-wrap items-center gap-4 font-mono text-xs text-white/60;
+  }
+
+  .terminal-body {
+    @apply flex flex-col gap-6 px-6 py-6;
+  }
+
+  .terminal-banner {
+    @apply rounded-2xl border border-white/10 bg-white/5 px-4 py-2 font-mono text-[0.65rem] uppercase tracking-[0.35em] text-white/60;
+  }
+
+  .terminal-status {
+    @apply flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-xs uppercase tracking-[0.35em] text-white/70;
+  }
+
+  .terminal-status .status-label {
+    @apply text-white;
+  }
+
+  .terminal-status .status-detail {
+    @apply text-white/70 font-sans text-sm normal-case tracking-tight;
+  }
+
+  .terminal-status.tone-success {
+    border-color: rgba(77, 225, 176, 0.4);
+  }
+
+  .terminal-status.tone-info {
+    border-color: rgba(94, 242, 255, 0.4);
+  }
+
+  .terminal-status.tone-warn {
+    border-color: rgba(243, 93, 224, 0.5);
+  }
+
+  .prompt-line {
+    @apply flex flex-wrap items-center gap-2 font-mono text-sm text-white/70;
+  }
+
+  .prompt-user {
+    @apply text-agent-cyan;
+  }
+
+  .prompt-symbol {
+    @apply text-white/50;
+  }
+
+  .prompt-command {
+    @apply text-white;
+  }
+
+  .chat-feed {
+    @apply flex flex-col gap-4;
+    padding-bottom: 5.5rem;
+  }
+
+  .chat-message {
+    @apply rounded-2xl border border-white/10 bg-black/20 p-4 font-mono text-sm text-white/80;
+  }
+
+  .message--apt {
+    border-left: 3px solid rgba(124, 93, 255, 0.8);
+  }
+
+  .message--apt-code {
+    border-left: 3px solid rgba(94, 242, 255, 0.85);
+  }
+
+  .message--user {
+    border-left: 3px solid rgba(243, 93, 224, 0.85);
+  }
+
+  .message-meta {
+    @apply flex flex-wrap items-center gap-2 text-[0.65rem] uppercase tracking-[0.35em];
+  }
+
+  .agent-chip {
+    @apply rounded-full border px-3 py-1 text-[0.6rem] font-semibold tracking-[0.35em];
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .agent-chip--apt {
+    border-color: rgba(124, 93, 255, 0.6);
+    color: #c5baff;
+  }
+
+  .agent-chip--apt-code {
+    border-color: rgba(94, 242, 255, 0.6);
+    color: #b9fbff;
+  }
+
+  .agent-chip--user {
+    border-color: rgba(243, 93, 224, 0.6);
+    color: #ffc5f6;
+  }
+
+  .message-caption,
+  .message-timestamp,
+  .message-status,
+  .message-stat {
+    @apply text-white/50;
+  }
+
+  .message-status {
+    @apply text-white/70;
+  }
+
+  .message-stat {
+    @apply font-semibold text-agent-cyan;
+  }
+
+  .streaming-dot {
+    @apply text-agent-cyan;
+    animation: streamingPulse 1.4s ease-in-out infinite;
+  }
+
+  .command-line {
+    @apply mt-3 flex items-center gap-2 text-white/70;
+  }
+
+  .command-text {
+    @apply font-semibold text-white;
+  }
+
+  .message-body {
+    @apply mt-3 space-y-1 text-white;
+  }
+
+  .message-body p {
+    @apply whitespace-pre-wrap;
+  }
+
+  .diff-block {
+    @apply mt-4 rounded-2xl bg-black/40 p-3;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .diff-line {
+    @apply text-xs text-white/70;
+  }
+
+  .diff-line--add {
+    color: #4de1b0;
+  }
+
+  .diff-line--remove {
+    color: #f35de0;
+  }
+
+  .message-footer {
+    @apply mt-4 text-xs uppercase tracking-[0.35em] text-white/50;
+  }
+
+  .extension-stack {
+    @apply mt-4 space-y-3;
+  }
+
+  .extension-card {
+    @apply rounded-xl border border-white/10 bg-white/5 p-3;
+  }
+
+  .extension-label {
+    @apply text-xs uppercase tracking-[0.35em] text-white;
+  }
+
+  .extension-description {
+    @apply text-[0.7rem] uppercase tracking-[0.35em] text-white/50;
+  }
+
+  .extension-body {
+    @apply mt-2 rounded-lg bg-black/40 p-3 font-mono text-xs text-white/80;
+  }
+
+  .input-bar {
+    @apply flex items-center gap-2 rounded-2xl border border-dashed border-white/20 px-4 py-3 font-mono text-sm text-white/60;
+  }
+
+  .input-field {
+    @apply flex-1 bg-transparent text-white placeholder:text-white/30 focus:outline-none disabled:text-white/40;
+  }
+
+  .send-button {
+    @apply rounded-full border border-white/20 px-4 py-1 text-xs uppercase tracking-[0.35em] text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .input-error {
+    @apply text-xs font-mono text-[#f35de0];
+  }
+
+  .passphrase-form {
+    @apply flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/5 px-4 py-3;
+  }
+
+  .passphrase-form label {
+    @apply text-xs uppercase tracking-[0.35em] text-white/50;
+  }
+
+  .passphrase-status {
+    @apply text-[0.65rem] uppercase tracking-[0.35em] text-[#4de1b0];
+  }
+
+  .ops-panel {
+    @apply flex flex-col gap-4;
+  }
+
+  .panel-block {
+    @apply rounded-2xl border border-white/10 bg-black/30 p-5;
+  }
+
+  .panel-head {
+    @apply mb-4 flex items-center justify-between text-xs uppercase tracking-[0.35em] text-white/60;
+  }
+
+  .light-pill {
+    @apply rounded-full border border-white/20 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.35em] text-white/70;
+  }
+
+  .meter-list,
+  .ops-list,
+  .shortcut-list {
+    @apply space-y-4;
+  }
+
+  .meter-line,
+  .ops-row,
+  .shortcut-line {
+    @apply flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-white/5 px-4 py-3;
+  }
+
+  .meter-label {
+    @apply text-sm text-white;
+  }
+
+  .meter-detail {
+    @apply text-xs text-white/60;
+  }
+
+  .meter-value,
+  .ops-meta {
+    @apply font-mono text-xs uppercase tracking-[0.35em];
+  }
+
+  .shortcut-line {
+    @apply items-center font-mono text-xs text-white/70;
+    background: rgba(2, 6, 12, 0.7);
+  }
+
+  .keycap {
+    @apply rounded border border-white/20 bg-black/40 px-3 py-1 font-semibold text-white;
+  }
+
+  .shortcut-desc {
+    @apply text-white/60;
+  }
+
+  .tone-success {
+    color: #4de1b0;
+  }
+
+  .tone-info {
+    color: #5ef2ff;
+  }
+
+  .tone-warn {
+    color: #f35de0;
+  }
+}
+
+@keyframes streamingPulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}

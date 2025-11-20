@@ -1,0 +1,6 @@
+{
+  "projectId": "apt",
+  "sourceOfTruth": "src/contracts/schemas/agent-rules.schema.json",
+  "objectivesAnchor": "sections.current_snapshot",
+  "version": "3.0.0"
+}

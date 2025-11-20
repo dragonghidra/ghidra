@@ -1,0 +1,43 @@
+{
+  "$schema": "./schemas/agent-profile.schema.json",
+  "contractVersion": "1.0.0",
+  "version": "2024-11-24",
+  "label": "APT CLI profile manifest",
+  "description": "Default profile definitions shipped with the CLI, including provider defaults and rulebook bindings.",
+  "profiles": [
+    {
+      "name": "general",
+      "label": "APT",
+      "description": "General-purpose operator with balanced reasoning across research, planning, writing, and coding tasks.",
+      "defaultProvider": "openai",
+      "defaultModel": "gpt-5.1",
+      "temperature": 0.2,
+      "systemPrompt": {
+        "type": "rulebook",
+        "template": "{{rulebook}}"
+      },
+      "rulebook": {
+        "file": "agents/general.rules.json",
+        "version": "2024-11-24",
+        "contractVersion": "1.0.0",
+        "description": "Structured rules governing the balanced APT profile."
+      }
+    },
+    {
+      "name": "apt-code",
+      "label": "APT Code",
+      "description": "OpenAI-tuned coding specialist optimized for rapid edits with deterministic grounding.",
+      "defaultProvider": "openai",
+      "defaultModel": "gpt-5.1-codex",
+      "systemPrompt": {
+        "type": "rulebook"
+      },
+      "rulebook": {
+        "file": "agents/apt-code.rules.json",
+        "version": "2024-11-24",
+        "contractVersion": "1.0.0",
+        "description": "Deterministic coding workflow guardrails."
+      }
+    }
+  ]
+}

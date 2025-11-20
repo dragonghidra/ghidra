@@ -1,0 +1,1075 @@
+import { createSpinner } from 'nanospinner';
+import { cursorTo, moveCursor } from 'node:readline';
+import { theme, icons } from './theme.js';
+import { formatRichContent, renderMessagePanel } from './richText.js';
+import { getTerminalColumns, wrapPreformatted } from './layout.js';
+import type { ProviderUsage } from '../core/types.js';
+import { renderCallout, renderSectionHeading } from './designSystem.js';
+
+type WriteFn = typeof process.stdout.write;
+
+class StdoutLineTracker {
+  private static instance: StdoutLineTracker | null = null;
+  static getInstance(): StdoutLineTracker {
+    if (!StdoutLineTracker.instance) {
+      StdoutLineTracker.instance = new StdoutLineTracker(process.stdout);
+    }
+    return StdoutLineTracker.instance;
+  }
+
+  private linesWritten = 0;
+  private suspended = false;
+  private readonly stream: NodeJS.WriteStream;
+  private readonly originalWrite: WriteFn;
+
+  private constructor(stream: NodeJS.WriteStream) {
+    this.stream = stream;
+    this.originalWrite = stream.write.bind(stream);
+    this.patchStream();
+  }
+
+  get totalLines(): number {
+    return this.linesWritten;
+  }
+
+  withSuspended<T>(fn: () => T): T {
+    this.suspended = true;
+    try {
+      return fn();
+    } finally {
+      this.suspended = false;
+    }
+  }
+
+  reset(): void {
+    this.linesWritten = 0;
+  }
+
+  private patchStream(): void {
+    const tracker = this;
+    this.stream.write = function patched(chunk: any, encoding?: any, callback?: any): boolean {
+      tracker.recordChunk(chunk, encoding);
+      return tracker.originalWrite(chunk, encoding, callback);
+    } as WriteFn;
+  }
+
+  private recordChunk(chunk: any, encoding?: any): void {
+    if (this.suspended) {
+      return;
+    }
+    const text = this.toString(chunk, encoding);
+    if (!text) {
+      return;
+    }
+    for (let index = 0; index < text.length; index += 1) {
+      if (text[index] === '\n') {
+        this.linesWritten += 1;
+      }
+    }
+  }
+
+  private toString(chunk: any, encoding?: any): string | null {
+    if (typeof chunk === 'string') {
+      return chunk;
+    }
+    if (chunk instanceof Uint8Array) {
+      const enc = typeof encoding === 'string' ? encoding : 'utf8';
+      return Buffer.from(chunk).toString(enc as BufferEncoding);
+    }
+    return null;
+  }
+}
+
+interface BannerState {
+  startLine: number;
+  height: number;
+  width: number;
+  workingDir: string;
+  version?: string;
+  model: string;
+  provider: string;
+  profileLabel: string;
+  profileName: string;
+}
+
+export interface DisplayMessageMetadata {
+  isFinal?: boolean;
+  elapsedMs?: number;
+  usage?: ProviderUsage | null;
+  contextWindowTokens?: number | null;
+}
+
+interface ThoughtFormatConfig {
+  totalWidth: number;
+  prefixWidth: number;
+  available: number;
+  bullet: string;
+  branch: string;
+  last: string;
+  spacer: string;
+}
+
+type ActionStatus = 'pending' | 'success' | 'error' | 'info' | 'warning';
+
+interface PrefixWrapOptions {
+  continuationPrefix?: string;
+}
+
+interface InfoBlockStyleOptions {
+  labelColor?: (value: string) => string;
+  valueColor?: (value: string) => string;
+}
+
+type InfoField = 'agent' | 'profile' | 'model' | 'workspace';
+
+interface OutputInterceptor {
+  beforeWrite?: () => void;
+  afterWrite?: () => void;
+}
+
+export class Display {
+  private readonly stdoutTracker = StdoutLineTracker.getInstance();
+  private activeSpinner: ReturnType<typeof createSpinner> | null = null;
+  private readonly outputInterceptors = new Set<OutputInterceptor>();
+
+  registerOutputInterceptor(interceptor: OutputInterceptor): () => void {
+    if (!interceptor) {
+      return () => {};
+    }
+    this.outputInterceptors.add(interceptor);
+    return () => {
+      this.outputInterceptors.delete(interceptor);
+    };
+  }
+
+  private withOutput<T>(fn: () => T): T {
+    this.notifyBeforeOutput();
+    try {
+      return fn();
+    } finally {
+      this.notifyAfterOutput();
+    }
+  }
+
+  private notifyBeforeOutput(): void {
+    for (const interceptor of this.outputInterceptors) {
+      interceptor.beforeWrite?.();
+    }
+  }
+
+  private notifyAfterOutput(): void {
+    const interceptors = Array.from(this.outputInterceptors);
+    for (let index = interceptors.length - 1; index >= 0; index -= 1) {
+      interceptors[index]?.afterWrite?.();
+    }
+  }
+  private bannerState: BannerState | null = null;
+
+  showWelcome(
+    profileLabel: string,
+    profileName: string,
+    model: string,
+    provider: string,
+    workingDir: string,
+    version?: string
+  ) {
+    const width = this.getBannerWidth();
+    const banner = this.buildClaudeStyleBanner(profileLabel, model, provider, workingDir, width);
+    const startLine = this.stdoutTracker.totalLines;
+    this.withOutput(() => {
+      console.log(banner);
+    });
+    const nextState: BannerState = {
+      startLine,
+      height: this.measureBannerHeight(banner),
+      width,
+      workingDir,
+      model,
+      provider,
+      profileLabel,
+      profileName,
+    };
+    if (version) {
+      nextState.version = version;
+    }
+    this.bannerState = nextState;
+  }
+
+  updateSessionInfo(model: string, provider: string) {
+    const state = this.bannerState;
+    if (!state) {
+      return;
+    }
+
+    const lines = this.buildSessionLines(
+      state.profileLabel,
+      state.profileName,
+      model,
+      provider,
+      state.workingDir,
+      state.width
+    );
+    const banner = this.buildBanner(
+      'APT CLI',
+      state.width,
+      lines,
+      this.buildBannerOptions(state.version)
+    );
+    const height = this.measureBannerHeight(banner);
+
+    if (height !== state.height || !this.tryRewriteBanner(state, banner)) {
+      this.renderAndStoreBanner(state, model, provider);
+      return;
+    }
+
+    state.model = model;
+    state.provider = provider;
+  }
+
+  showThinking(message: string = 'Thinking...') {
+    if (this.activeSpinner) {
+      this.activeSpinner.stop();
+    }
+    this.activeSpinner = createSpinner(message).start();
+  }
+
+  updateThinking(message: string) {
+    if (this.activeSpinner) {
+      this.activeSpinner.update({ text: message });
+    } else {
+      this.showThinking(message);
+    }
+  }
+
+  stopThinking() {
+    if (this.activeSpinner) {
+      this.activeSpinner.clear();
+      this.activeSpinner = null;
+    }
+  }
+
+  showAssistantMessage(content: string, metadata?: DisplayMessageMetadata) {
+    if (!content.trim()) {
+      return;
+    }
+    const isThought = metadata?.isFinal === false;
+    const body = isThought ? this.buildClaudeStyleThought(content) : this.buildChatBox(content, metadata);
+    if (!body.trim()) {
+      return;
+    }
+    this.withOutput(() => {
+      console.log(body);
+      console.log();
+    });
+  }
+
+  showAction(text: string, status: ActionStatus = 'info') {
+    if (!text.trim()) {
+      return;
+    }
+    const icon = this.formatActionIcon(status);
+    this.withOutput(() => {
+      console.log(this.wrapWithPrefix(text, `${icon} `));
+    });
+  }
+
+  showSubAction(text: string, status: ActionStatus = 'info') {
+    if (!text.trim()) {
+      return;
+    }
+    const prefersRich = text.includes('```');
+    let rendered = prefersRich ? this.buildRichSubActionLines(text, status) : this.buildWrappedSubActionLines(text, status);
+    if (!rendered.length && prefersRich) {
+      rendered = this.buildWrappedSubActionLines(text, status);
+    }
+    if (!rendered.length) {
+      return;
+    }
+    this.withOutput(() => {
+      console.log(rendered.join('\n'));
+      console.log();
+    });
+  }
+
+  private buildWrappedSubActionLines(text: string, status: ActionStatus): string[] {
+    const lines = text.split('\n').map((line) => line.trimEnd());
+    while (lines.length && !lines[lines.length - 1]?.trim()) {
+      lines.pop();
+    }
+    if (!lines.length) {
+      return [];
+    }
+    const rendered: string[] = [];
+    for (let index = 0; index < lines.length; index += 1) {
+      const segment = lines[index] ?? '';
+      const isLast = index === lines.length - 1;
+      const { prefix, continuation } = this.buildSubActionPrefixes(status, isLast);
+      rendered.push(this.wrapWithPrefix(segment, prefix, { continuationPrefix: continuation }));
+    }
+    return rendered;
+  }
+
+  private buildRichSubActionLines(text: string, status: ActionStatus): string[] {
+    const normalized = text.trim();
+    if (!normalized) {
+      return [];
+    }
+    const width = Math.max(40, Math.min(getTerminalColumns(), 90));
+    const samplePrefix = this.buildSubActionPrefixes(status, true).prefix;
+    const contentWidth = Math.max(16, width - this.visibleLength(samplePrefix));
+    const blocks = formatRichContent(normalized, contentWidth);
+    if (!blocks.length) {
+      return [];
+    }
+    return blocks.map((line, index) => {
+      const isLast = index === blocks.length - 1;
+      const { prefix } = this.buildSubActionPrefixes(status, isLast);
+      if (!line.trim()) {
+        return prefix.trimEnd();
+      }
+      return `${prefix}${line}`;
+    });
+  }
+
+  showMessage(content: string, role: 'assistant' | 'system' = 'assistant') {
+    if (role === 'system') {
+      this.showSystemMessage(content);
+    } else {
+      this.showAssistantMessage(content);
+    }
+  }
+
+  showSystemMessage(content: string) {
+    this.withOutput(() => {
+      console.log(content.trim());
+      console.log();
+    });
+  }
+
+  showError(message: string) {
+    const callout = renderCallout(message, {
+      tone: 'danger',
+      icon: icons.error,
+      title: 'Error',
+      width: this.getBannerWidth(),
+    });
+    this.withOutput(() => {
+      console.error(`\n${callout}\n`);
+    });
+  }
+
+  showWarning(message: string) {
+    const callout = renderCallout(message, {
+      tone: 'warning',
+      icon: icons.warning,
+      title: 'Warning',
+      width: this.getBannerWidth(),
+    });
+    this.withOutput(() => {
+      console.warn(`${callout}`);
+    });
+  }
+
+  showInfo(message: string) {
+    const callout = renderCallout(message, {
+      tone: 'info',
+      icon: icons.info,
+      title: 'Info',
+      width: this.getBannerWidth(),
+    });
+    this.withOutput(() => {
+      console.log(callout);
+    });
+  }
+
+  showAvailableTools(tools: Array<{ name: string; description: string }>) {
+    // Hidden by default to match Claude Code style
+    // Tools are available but not listed verbosely on startup
+    return;
+
+    // Legacy verbose listing (disabled)
+    /* istanbul ignore next */
+    if (!tools || !tools.length) {
+      return;
+    }
+
+    const heading = renderSectionHeading('Available Tools', {
+      icon: icons.info,
+      tone: 'info',
+      width: Math.max(48, Math.min(getTerminalColumns(), 110)),
+    });
+
+    this.withOutput(() => {
+      console.log(heading);
+      tools.forEach((tool, index) => {
+        const prefix = theme.secondary(`  ${index + 1}. `);
+        const name = theme.primary(tool.name);
+        const separator = theme.ui.muted(' - ');
+        const description = theme.ui.text(tool.description);
+        console.log(`${prefix}${name}${separator}${description}`);
+      });
+      console.log();
+    });
+  }
+
+  showPlanningStep(step: string, index: number, total: number) {
+    const heading = renderSectionHeading(`Plan ${index}/${total}`, {
+      subtitle: step,
+      icon: icons.arrow,
+      tone: 'info',
+      width: Math.max(48, Math.min(getTerminalColumns(), 110)),
+    });
+    this.withOutput(() => {
+      console.log(heading);
+    });
+  }
+
+  clear() {
+    this.withOutput(() => {
+      console.clear();
+    });
+    this.stdoutTracker.reset();
+    if (this.bannerState) {
+      this.renderAndStoreBanner(this.bannerState, this.bannerState.model, this.bannerState.provider);
+    }
+  }
+
+  newLine() {
+    this.withOutput(() => {
+      console.log();
+    });
+  }
+
+  private getBannerWidth(): number {
+    const availableColumns = getTerminalColumns();
+    const effectiveWidth = Math.max(32, availableColumns - 4);
+    return Math.min(Math.max(effectiveWidth, 32), 120);
+  }
+
+  private buildSessionLines(
+    profileLabel: string,
+    profileName: string,
+    model: string,
+    provider: string,
+    workingDir: string,
+    width: number
+  ): string[] {
+    const normalizedLabel = profileLabel ? profileLabel.trim() : '';
+    const normalizedProfile = profileName ? profileName.trim() : '';
+    const agentLabel = normalizedLabel || normalizedProfile || 'Active agent';
+    const modelSummary = [this.formatModelLabel(model), provider].join(' • ');
+    const lines = [
+      ...this.formatInfoBlock('Agent', agentLabel, width, this.getInfoFieldStyle('agent')),
+    ];
+
+    if (normalizedProfile) {
+      lines.push(...this.formatInfoBlock('Profile', normalizedProfile, width, this.getInfoFieldStyle('profile')));
+    }
+
+    lines.push(
+      ...this.formatInfoBlock('Model', modelSummary, width, this.getInfoFieldStyle('model')),
+      ...this.formatInfoBlock('Workspace', workingDir, width, this.getInfoFieldStyle('workspace'))
+    );
+
+    return lines;
+  }
+
+  private measureBannerHeight(banner: string): number {
+    if (!banner) {
+      return 0;
+    }
+    const lines = banner.split('\n').length;
+    return lines;
+  }
+
+  private tryRewriteBanner(state: BannerState, banner: string): boolean {
+    if (!process.stdout.isTTY) {
+      return false;
+    }
+
+    const linesWritten = this.stdoutTracker.totalLines;
+    const linesAfterBanner = linesWritten - (state.startLine + state.height);
+    if (linesAfterBanner < 0) {
+      return false;
+    }
+
+    const totalOffset = linesAfterBanner + state.height;
+    const maxRows = process.stdout.rows;
+    if (typeof maxRows === 'number' && totalOffset > maxRows) {
+      return false;
+    }
+
+    try {
+      this.withOutput(() => {
+        moveCursor(process.stdout, 0, -totalOffset);
+        cursorTo(process.stdout, 0);
+        this.stdoutTracker.withSuspended(() => {
+          process.stdout.write(`${banner}\n`);
+        });
+        if (linesAfterBanner > 0) {
+          moveCursor(process.stdout, 0, linesAfterBanner);
+          cursorTo(process.stdout, 0);
+        } else {
+          cursorTo(process.stdout, 0);
+        }
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private renderAndStoreBanner(state: BannerState, model: string, provider: string): void {
+    const width = this.getBannerWidth();
+    const lines = this.buildSessionLines(
+      state.profileLabel,
+      state.profileName,
+      model,
+      provider,
+      state.workingDir,
+      width
+    );
+    const banner = this.buildBanner('APT CLI', width, lines, this.buildBannerOptions(state.version));
+    const startLine = this.stdoutTracker.totalLines;
+    this.withOutput(() => {
+      console.log(banner);
+    });
+
+    state.startLine = startLine;
+    state.height = this.measureBannerHeight(banner);
+    state.width = width;
+    state.model = model;
+    state.provider = provider;
+  }
+
+  private formatModelLabel(model: string): string {
+    if (/gpt-5\.1-?codex/i.test(model)) {
+      return model;
+    }
+    if (/sonnet-4[-.]?5/i.test(model)) {
+      return 'Sonnet 4.5';
+    }
+    if (/opus-4[-.]?1/i.test(model)) {
+      return 'Opus 4.1';
+    }
+    if (/haiku-4[-.]?5/i.test(model)) {
+      return 'Haiku 4.5';
+    }
+    if (/gpt-5\.1/i.test(model)) {
+      return 'GPT-5.1';
+    }
+    if (/gpt-5-?pro/i.test(model)) {
+      return 'GPT-5 Pro';
+    }
+    if (/gpt-5-?mini/i.test(model)) {
+      return 'GPT-5 Mini';
+    }
+    if (/gpt-5-?nano/i.test(model)) {
+      return 'GPT-5 Nano';
+    }
+    return model;
+  }
+
+  private buildChatBox(content: string, metadata?: DisplayMessageMetadata): string {
+    const normalized = content.trim();
+    if (!normalized) {
+      return '';
+    }
+    const width = this.resolveMessageWidth();
+    const panel = renderMessagePanel(normalized, {
+      width,
+      title: 'Assistant',
+      icon: icons.assistant,
+      accentColor: theme.assistant ?? theme.primary,
+      borderColor: theme.ui.border,
+    });
+    const telemetry = this.formatTelemetryLine(metadata);
+    if (!telemetry) {
+      return panel;
+    }
+    return `${panel}\n${telemetry}`;
+  }
+
+  private resolveMessageWidth(): number {
+    const columns = getTerminalColumns();
+    return Math.max(42, Math.min(columns - 4, 110));
+  }
+
+
+  // @ts-ignore - Legacy method kept for compatibility
+  private appendThoughtBlock(block: string, format: ThoughtFormatConfig, output: string[]): void {
+    const rawLines = block.split('\n');
+    const indices = rawLines
+      .map((line, index) => (line.trim().length ? index : -1))
+      .filter((index) => index >= 0);
+
+    if (!indices.length) {
+      return;
+    }
+
+    const lastIndex = indices[indices.length - 1];
+    let usedFirst = false;
+
+    for (let index = 0; index < rawLines.length; index += 1) {
+      const rawLine = rawLines[index] ?? '';
+      if (!rawLine.trim()) {
+        continue;
+      }
+      const segments = this.wrapThoughtLine(rawLine, format.available);
+      if (!segments.length) {
+        continue;
+      }
+      const isLastLine = index === lastIndex;
+      segments.forEach((segment, segmentIndex) => {
+        const prefix = this.resolveThoughtPrefix({
+          usedFirst,
+          segmentIndex,
+          isLastLine,
+          format,
+        });
+        output.push(`${prefix}${segment}`);
+      });
+      usedFirst = true;
+    }
+  }
+
+  private resolveThoughtPrefix(options: {
+    usedFirst: boolean;
+    segmentIndex: number;
+    isLastLine: boolean;
+    format: ThoughtFormatConfig;
+  }): string {
+    if (!options.usedFirst) {
+      return options.segmentIndex === 0 ? options.format.bullet : options.format.spacer;
+    }
+
+    if (options.segmentIndex === 0) {
+      return options.isLastLine ? options.format.last : options.format.branch;
+    }
+
+    return options.format.spacer;
+  }
+
+  // @ts-ignore - Legacy method kept for compatibility
+  private getThoughtFormat(): ThoughtFormatConfig {
+    const totalWidth = Math.max(48, Math.min(getTerminalColumns(), 96));
+    const prefixWidth = Math.max(3, this.visibleLength(`${icons.bullet} `));
+    const available = Math.max(12, totalWidth - prefixWidth);
+
+    return {
+      totalWidth,
+      prefixWidth,
+      available,
+      bullet: theme.secondary(this.padPrefix(`${icons.bullet} `, prefixWidth)),
+      branch: theme.ui.muted(this.padPrefix('│ ', prefixWidth)),
+      last: theme.ui.muted(this.padPrefix('└ ', prefixWidth)),
+      spacer: ' '.repeat(prefixWidth),
+    };
+  }
+
+  private wrapThoughtLine(line: string, width: number): string[] {
+    const preserveIndentation = /^\s/.test(line);
+    const normalized = preserveIndentation ? line.replace(/\s+$/, '') : line.trim();
+    if (!normalized) {
+      return [];
+    }
+    if (preserveIndentation) {
+      return wrapPreformatted(normalized, width);
+    }
+    return this.wrapLine(normalized, width);
+  }
+
+  private formatTelemetryLine(metadata?: DisplayMessageMetadata): string {
+    if (!metadata) {
+      return '';
+    }
+    const parts: string[] = [];
+    const elapsed = this.formatElapsed(metadata.elapsedMs);
+    if (elapsed) {
+      const elapsedLabel = theme.metrics?.elapsedLabel ?? theme.accent;
+      const elapsedValue = theme.metrics?.elapsedValue ?? theme.secondary;
+      parts.push(`${elapsedLabel('elapsed')} ${elapsedValue(elapsed)}`);
+    }
+    if (!parts.length) {
+      return '';
+    }
+    const separator = theme.ui.muted(' • ');
+    return `  ${parts.join(separator)}`;
+  }
+
+  private formatElapsed(elapsedMs?: number): string | null {
+    if (typeof elapsedMs !== 'number' || !Number.isFinite(elapsedMs) || elapsedMs < 0) {
+      return null;
+    }
+    const totalSeconds = Math.max(0, Math.round(elapsedMs / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes > 0) {
+      return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+    }
+    return `${seconds}s`;
+  }
+
+  private buildClaudeStyleBanner(
+    profileLabel: string,
+    model: string,
+    _provider: string,
+    workingDir: string,
+    width: number
+  ): string {
+    const gradient = theme.gradient.cool;
+    const dim = theme.ui.muted;
+
+    // Build centered content
+    const lines: string[] = [];
+
+    // Top border
+    lines.push(gradient(`╭${'─'.repeat(width)}╮`));
+
+    // Empty line
+    lines.push(gradient('│') + ' '.repeat(width) + gradient('│'));
+
+    // Welcome message - centered
+    const userName = process.env['USER'] || 'User';
+    const welcome = `Welcome back ${userName}!`;
+    lines.push(this.centerLine(welcome, width, gradient));
+
+    // Empty line
+    lines.push(gradient('│') + ' '.repeat(width) + gradient('│'));
+
+    // Empty line
+    lines.push(gradient('│') + ' '.repeat(width) + gradient('│'));
+
+    // Epsilon logo - centered
+    const logo = [
+      'ε',
+    ];
+    for (const logoLine of logo) {
+      lines.push(this.centerLine(logoLine, width, gradient));
+    }
+
+    // Empty line
+    lines.push(gradient('│') + ' '.repeat(width) + gradient('│'));
+
+    // Empty line
+    lines.push(gradient('│') + ' '.repeat(width) + gradient('│'));
+
+    // Model name - centered
+    lines.push(this.centerLine(model, width, gradient));
+
+    // Profile label - centered
+    lines.push(this.centerLine(profileLabel, width, gradient, dim));
+
+    // Workspace - centered
+    const shortPath = this.abbreviatePath(workingDir, width - 8);
+    lines.push(this.centerLine(shortPath, width, gradient, dim));
+
+    // Empty line
+    lines.push(gradient('│') + ' '.repeat(width) + gradient('│'));
+
+    // Bottom border
+    lines.push(gradient(`╰${'─'.repeat(width)}╯`));
+
+    return lines.join('\n');
+  }
+
+  private centerLine(
+    text: string,
+    width: number,
+    borderColor: (s: string) => string,
+    textColor?: (s: string) => string
+  ): string {
+    const visibleLen = this.visibleLength(text);
+    const padding = Math.max(0, Math.floor((width - visibleLen) / 2));
+    const rightPad = width - visibleLen - padding;
+    const colored = textColor ? textColor(text) : text;
+    return borderColor('│') + ' '.repeat(padding) + colored + ' '.repeat(rightPad) + borderColor('│');
+  }
+
+  private abbreviatePath(path: string, maxLen: number): string {
+    if (path.length <= maxLen) return path;
+    const parts = path.split('/');
+    if (parts.length <= 2) return path;
+    return parts[0] + '/.../' + parts[parts.length - 1];
+  }
+
+  private buildBanner(
+    title: string,
+    width: number,
+    lines: string[],
+    options?: { badge?: string }
+  ): string {
+    const badge = options?.badge ? ` ${options.badge}` : '';
+    const titleSegment = `─ ${title}${badge} `;
+    const filler = '─'.repeat(Math.max(0, width - titleSegment.length));
+    const gradient = theme.gradient.cool;
+    const top = gradient(`╭${titleSegment}${filler}╮`);
+    const body = lines.map((line) => this.buildBannerLine(line, width)).join('\n');
+    const bottom = gradient(`╰${'─'.repeat(width)}╯`);
+    return `${top}\n${body}\n${bottom}`;
+  }
+
+  private buildBannerOptions(version?: string): { badge: string } | undefined {
+    if (!version?.trim()) {
+      return undefined;
+    }
+    return { badge: `${version.trim()} • support@ero.solar` };
+  }
+
+  private buildBannerLine(text: string, width: number): string {
+    const padded = this.padLine(text, width);
+    const tinted = theme.ui.background(theme.ui.text(padded));
+    const edge = theme.gradient.primary('│');
+    return `${edge}${tinted}${edge}`;
+  }
+
+  private padLine(text: string, width: number): string {
+    const visible = this.visibleLength(text);
+    if (visible >= width) {
+      return this.truncateVisible(text, width);
+    }
+    const padding = Math.max(0, width - visible);
+    return `${text}${' '.repeat(padding)}`;
+  }
+
+  private formatInfoBlock(
+    label: string,
+    value: string,
+    width: number,
+    options?: InfoBlockStyleOptions
+  ): string[] {
+    const prefix = `${label.toUpperCase()}: `;
+    const prefixLength = prefix.length;
+    const available = Math.max(10, width - prefixLength);
+    const wrapped = this.wrapLine(value, available);
+    return wrapped.map((line, index) => {
+      const indent = index === 0 ? prefix : ' '.repeat(prefixLength);
+      const raw = `${indent}${line}`;
+      const padded = this.padLine(raw, width);
+      if (!options) {
+        return padded;
+      }
+      const labelColor = index === 0 ? options.labelColor : undefined;
+      return this.applyInfoLineStyles(
+        padded,
+        prefixLength,
+        line.length,
+        labelColor,
+        options.valueColor
+      );
+    });
+  }
+
+  private applyInfoLineStyles(
+    line: string,
+    prefixLength: number,
+    valueLength: number,
+    labelColor?: (value: string) => string,
+    valueColor?: (value: string) => string
+  ): string {
+    const prefix = line.slice(0, prefixLength);
+    const remainder = line.slice(prefixLength);
+    const tintedPrefix = labelColor ? labelColor(prefix) : prefix;
+    const safeValueLength = Math.max(0, Math.min(valueLength, remainder.length));
+    if (!valueColor || safeValueLength <= 0) {
+      return `${tintedPrefix}${remainder}`;
+    }
+    const valueSegment = remainder.slice(0, safeValueLength);
+    const trailing = remainder.slice(safeValueLength);
+    const tintedValue = valueColor(valueSegment);
+    return `${tintedPrefix}${tintedValue}${trailing}`;
+  }
+
+  private getInfoFieldStyle(field: InfoField): InfoBlockStyleOptions {
+    const labelColor = theme.fields?.label ?? ((text: string) => text);
+    const valueColor = (theme.fields?.[field] as ((text: string) => string) | undefined) ?? ((text: string) => text);
+    return {
+      labelColor,
+      valueColor,
+    };
+  }
+
+  private wrapWithPrefix(text: string, prefix: string, options?: PrefixWrapOptions): string {
+    const width = Math.max(40, Math.min(getTerminalColumns(), 90));
+    const prefixWidth = this.visibleLength(prefix);
+    const available = Math.max(10, width - prefixWidth);
+    const indent =
+      typeof options?.continuationPrefix === 'string'
+        ? options.continuationPrefix
+        : ' '.repeat(Math.max(0, prefixWidth));
+    const segments = text.split('\n');
+    const lines: string[] = [];
+    let usedPrefix = false;
+
+    for (const segment of segments) {
+      if (!segment.trim()) {
+        if (usedPrefix) {
+          lines.push(indent);
+        } else {
+          lines.push(prefix.trimEnd());
+          usedPrefix = true;
+        }
+        continue;
+      }
+
+      const wrapped = this.wrapLine(segment.trim(), available);
+      for (const line of wrapped) {
+        lines.push(!usedPrefix ? `${prefix}${line}` : `${indent}${line}`);
+        usedPrefix = true;
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  private resolveStatusColor(status: ActionStatus) {
+    switch (status) {
+      case 'success':
+        return theme.success;
+      case 'error':
+        return theme.error;
+      case 'warning':
+        return theme.warning;
+      case 'pending':
+        return theme.info;
+      default:
+        return theme.secondary;
+    }
+  }
+
+  private formatActionIcon(status: ActionStatus): string {
+    const colorize = this.resolveStatusColor(status);
+    return colorize(`${icons.action}`);
+  }
+
+
+  private buildClaudeStyleThought(content: string): string {
+    // Claude Code style: compact ⏺ prefix for thoughts
+    const prefix = theme.ui.muted('⏺') + ' ';
+    return this.wrapWithPrefix(content, prefix);
+  }
+
+  // @ts-ignore - Legacy method kept for compatibility
+  // Keep legacy method to avoid breaking changes
+  private buildThoughtStatus = this.buildClaudeStyleThought;
+
+  private buildSubActionPrefixes(status: ActionStatus, isLast: boolean) {
+    if (isLast) {
+      const colorize = this.resolveStatusColor(status);
+      return {
+        prefix: `  ${colorize('└')} `,
+        continuation: '    ',
+      };
+    }
+    const branch = theme.ui.muted('│');
+    return {
+      prefix: `  ${branch} `,
+      continuation: `  ${branch} `,
+    };
+  }
+
+  private wrapLine(text: string, width: number): string[] {
+    if (width <= 0) {
+      return [text];
+    }
+    if (!text) {
+      return [''];
+    }
+    if (text.length <= width) {
+      return [text];
+    }
+
+    const lines: string[] = [];
+    let current = '';
+    const words = text.split(/\s+/).filter(Boolean);
+
+    const appendWord = (word: string) => {
+      if (!word.length) {
+        return;
+      }
+      if (!current.length) {
+        if (word.length <= width) {
+          current = word;
+          return;
+        }
+        const chunks = this.chunkWord(word, width);
+        if (!chunks.length) {
+          current = '';
+          return;
+        }
+        lines.push(...chunks.slice(0, -1));
+        current = chunks[chunks.length - 1] ?? '';
+        return;
+      }
+      if (current.length + 1 + word.length <= width) {
+        current += ` ${word}`;
+        return;
+      }
+      lines.push(current);
+      if (word.length <= width) {
+        current = word;
+      } else {
+        const chunks = this.chunkWord(word, width);
+        if (!chunks.length) {
+          current = '';
+        } else {
+          lines.push(...chunks.slice(0, -1));
+          current = chunks[chunks.length - 1] ?? '';
+        }
+      }
+    };
+
+    if (!words.length) {
+      const chunks = this.chunkWord(text, width);
+      return chunks;
+    }
+
+    for (const word of words) {
+      appendWord(word);
+    }
+    if (current) {
+      lines.push(current);
+    }
+    return lines.length ? lines : [''];
+  }
+
+  private chunkWord(word: string, width: number): string[] {
+    if (width <= 0) {
+      return [word];
+    }
+    const chunks: string[] = [];
+    for (let i = 0; i < word.length; i += width) {
+      chunks.push(word.slice(i, i + width));
+    }
+    return chunks;
+  }
+
+  private padPrefix(value: string, width: number): string {
+    if (value.length >= width) {
+      return value;
+    }
+    return value.padEnd(width, ' ');
+  }
+
+  private truncateVisible(value: string, width: number): string {
+    if (width <= 0) {
+      return '';
+    }
+    const plain = this.stripAnsi(value);
+    if (plain.length <= width) {
+      return value;
+    }
+    const slice = plain.slice(0, Math.max(1, width - 1));
+    return `${slice}…`;
+  }
+
+  private visibleLength(value: string): number {
+    return this.stripAnsi(value).length;
+  }
+
+  private stripAnsi(value: string): string {
+    return value.replace(/\u001B\[[0-?]*[ -/]*[@-~]/g, '');
+  }
+}
+
+export const display = new Display();

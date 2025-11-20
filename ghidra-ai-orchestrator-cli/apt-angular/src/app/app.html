@@ -1,0 +1,187 @@
+<div class="stacked-bg">
+  <div class="shell-container">
+    <header class="hero">
+      <p class="hero-eyebrow">APT CLI profiles</p>
+      <h1>Mirror the exact chat feed you see in the terminal.</h1>
+      <p>
+        Stay in the same tmux vibe as the APT CLI: general + APT Code profiles, streaming diffs,
+        dual-agent logs, and the shortcuts you lean on while shipping inside the shell.
+      </p>
+      <div class="hero-chips">
+        <span class="hud-chip">apt general</span>
+        <span class="hud-chip">apt code</span>
+        <span class="hud-chip">live diff share</span>
+      </div>
+      <button
+        class="settings-button"
+        type="button"
+        (click)="openSettings()"
+      >
+        session settings
+      </button>
+    </header>
+
+    <div class="main-grid">
+      <section class="terminal-shell">
+        <div class="terminal-head">
+          <div class="head-left">
+            <span class="prompt-chip">apt (general)</span>
+            <span class="prompt-chip">apt-code</span>
+            <span class="prompt-chip">chat mirror</span>
+          </div>
+          <div class="head-meta">
+            <span>~/GitHub/angular-tailwind</span>
+            <span>branch main</span>
+            <span>node 20.11</span>
+          </div>
+        </div>
+
+        <div class="terminal-body">
+          <div
+            class="terminal-banner"
+            *ngIf="isLoading()"
+          >
+            syncing live session from APT CLI...
+          </div>
+          <div
+            class="terminal-banner tone-warn"
+            *ngIf="!isLoading() && errorMessage() as error"
+          >
+            {{ error }}
+          </div>
+          <div
+            class="terminal-status"
+            *ngIf="status() as sessionStatus"
+            [ngClass]="{
+              'tone-success': sessionStatus.tone === 'success',
+              'tone-info': sessionStatus.tone === 'info',
+              'tone-warn': sessionStatus.tone === 'warn'
+            }"
+          >
+            <span class="status-label">{{ sessionStatus.label }}</span>
+            <span class="status-detail">{{ sessionStatus.detail }}</span>
+          </div>
+          <form
+            class="passphrase-form"
+            (submit)="applyPassphrase($event)"
+            autocomplete="off"
+          >
+            <label>Password gate</label>
+            <input
+              class="input-field"
+              type="password"
+              name="passphrase"
+              placeholder="optional passphrase..."
+              [value]="passphraseDraft()"
+              (input)="onPassphraseInput($event)"
+            />
+            <button class="send-button" type="submit">
+              apply
+            </button>
+            <span
+              class="passphrase-status"
+              *ngIf="passphraseStatus() as statusMessage"
+            >
+              {{ statusMessage }}
+            </span>
+          </form>
+          <div class="prompt-line">
+            <span class="prompt-user">bo@workspace</span>
+            <span class="prompt-symbol">$</span>
+            <span class="prompt-command">apt --profile apt-code --json</span>
+          </div>
+
+          <div class="chat-feed">
+            <app-chat-message
+              *ngFor="let message of chatMessages()"
+              [message]="message"
+            ></app-chat-message>
+          </div>
+
+          <app-chat-input></app-chat-input>
+        </div>
+      </section>
+
+      <aside class="ops-panel">
+        <section class="panel-block">
+          <div class="panel-head">
+            <p>Live channels</p>
+            <span class="light-pill">mirrored</span>
+          </div>
+          <div class="meter-list">
+            <div
+              class="meter-line"
+              *ngFor="let meter of streamMeters()"
+            >
+              <div>
+                <p class="meter-label">{{ meter.label }}</p>
+                <p class="meter-detail">{{ meter.detail }}</p>
+              </div>
+              <span
+                class="meter-value"
+                [ngClass]="{
+                  'tone-success': meter.tone === 'success',
+                  'tone-info': meter.tone === 'info',
+                  'tone-warn': meter.tone === 'warn'
+                }"
+              >
+                {{ meter.value }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-block">
+          <div class="panel-head">
+            <p>Ops + telemetry</p>
+            <span class="light-pill tone-info">watch</span>
+          </div>
+          <div class="ops-list">
+            <div
+              class="ops-row"
+              *ngFor="let event of opsEvents()"
+            >
+              <div>
+                <p class="meter-label">{{ event.label }}</p>
+                <p class="meter-detail">{{ event.detail }}</p>
+              </div>
+              <span
+                class="ops-meta"
+                [ngClass]="{
+                  'tone-success': event.tone === 'success',
+                  'tone-info': event.tone === 'info',
+                  'tone-warn': event.tone === 'warn'
+                }"
+              >
+                {{ event.meta }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-block">
+          <div class="panel-head">
+            <p>Shortcuts</p>
+            <span class="light-pill tone-success">ready</span>
+          </div>
+          <div class="shortcut-list">
+            <div
+              class="shortcut-line"
+              *ngFor="let shortcut of shortcuts()"
+            >
+              <span class="keycap">{{ shortcut.keys }}</span>
+              <span class="shortcut-desc">{{ shortcut.description }}</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <app-run-board></app-run-board>
+    <app-connector-gallery></app-connector-gallery>
+  </div>
+</div>
+<app-settings-drawer
+  [open]="drawerOpen()"
+  (close)="closeSettings()"
+></app-settings-drawer>

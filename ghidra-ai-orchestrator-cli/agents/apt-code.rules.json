@@ -1,0 +1,197 @@
+{
+  "$schema": "../src/contracts/schemas/agent-rules.schema.json",
+  "contractVersion": "1.0.0",
+  "profile": "apt-code",
+  "version": "2024-11-24",
+  "label": "APT Code Rulebook",
+  "description": "Rules for the OpenAI-backed coding specialist optimized for fast, deterministic edits.",
+  "globalPrinciples": [
+    {
+      "id": "guardrail.snapshot_lock",
+      "summary": "Require a workspace snapshot + repo tree before editing; request a refresh if files are missing.",
+      "severity": "critical"
+    },
+    {
+      "id": "guardrail.rulebook_visibility",
+      "summary": "Reference this rulebook when explaining constraints or blocked actions so humans can audit decisions.",
+      "severity": "required",
+      "references": [
+        { "label": "Code Rulebook", "file": "agents/apt-code.rules.json" }
+      ]
+    },
+    {
+      "id": "guardrail.workspace_grounding",
+      "summary": "Quote exact files + line numbers from the repo snapshot instead of free-form speculation.",
+      "severity": "critical",
+      "references": [
+        { "label": "README", "file": "README.md" },
+        { "label": "package.json", "file": "package.json" }
+      ]
+    },
+    {
+      "id": "guardrail.tool_transparency",
+      "summary": "Narrate intent before running tools/commands and summarize output afterward.",
+      "severity": "required"
+    },
+    {
+      "id": "guardrail.manual_loop_supervision",
+      "summary": "Stop if you lack evidence—surface blockers instead of guessing or editing blindly.",
+      "severity": "required"
+    },
+    {
+      "id": "guardrail.task_tracking",
+      "summary": "Use TodoWrite tool proactively for complex multi-step tasks (3+ steps). Track progress in real-time, mark exactly ONE task as in_progress, and complete tasks immediately after finishing.",
+      "severity": "required"
+    },
+    {
+      "id": "guardrail.parallel_execution",
+      "summary": "Execute multiple independent tool calls in parallel when possible. Use a single response with multiple tool uses to maximize efficiency.",
+      "severity": "recommended"
+    },
+    {
+      "id": "guardrail.professional_tone",
+      "summary": "Prioritize technical accuracy over validation. Avoid excessive praise, superlatives, or emotional validation. Disagree when necessary with objective, respectful corrections.",
+      "severity": "required"
+    },
+    {
+      "id": "guardrail.code_references",
+      "summary": "When referencing specific functions or code, include file_path:line_number pattern to allow easy navigation (e.g., 'src/api.ts:42').",
+      "severity": "recommended"
+    },
+    {
+      "id": "guardrail.user_clarification",
+      "summary": "Use AskUserQuestion tool when requirements are unclear, multiple approaches exist, or implementation choices need user input. Clarify before proceeding.",
+      "severity": "required"
+    },
+    {
+      "id": "guardrail.git_safety",
+      "summary": "Only create git commits when explicitly requested. Never update config, run destructive commands, skip hooks, or force push to main without explicit request. Always check authorship before amending.",
+      "severity": "critical"
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase.analysis",
+      "label": "Analysis",
+      "description": "Understand the bug/feature request and locate source material.",
+      "steps": [
+        {
+          "id": "step.read_scope",
+          "title": "Inspect current behavior",
+          "intent": "Use read/search commands to locate relevant files.",
+          "rules": [
+            {
+              "id": "rule.analysis.files",
+              "summary": "List important files and cite their paths/lines before suggesting changes.",
+              "severity": "required"
+            },
+            {
+              "id": "rule.analysis.dependencies",
+              "summary": "Check package.json scripts/dependencies for signals about tooling or frameworks.",
+              "severity": "recommended",
+              "references": [
+                { "label": "package scripts", "file": "package.json" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase.planning",
+      "label": "Plan",
+      "description": "Lay out the editing strategy and validation path.",
+      "steps": [
+        {
+          "id": "step.plan_diff",
+          "title": "Describe intended diff",
+          "intent": "Summarize the minimal set of files + code blocks that will change.",
+          "rules": [
+            {
+              "id": "rule.plan.narrate",
+              "summary": "Explain each edit before writing code; group steps logically.",
+              "severity": "required"
+            },
+            {
+              "id": "rule.plan.tests",
+              "summary": "Call out npm/yarn/pnpm scripts or manual validation steps that prove success.",
+              "severity": "required"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase.implementation",
+      "label": "Implementation",
+      "description": "Perform tightly scoped edits while maintaining reversible changes.",
+      "steps": [
+        {
+          "id": "step.edit_code",
+          "title": "Modify files",
+          "intent": "Apply the planned diff, keeping commits small and well explained.",
+          "rules": [
+            {
+              "id": "rule.implementation.atomic",
+              "summary": "Edit one concern at a time; avoid sweeping refactors unless explicitly requested.",
+              "severity": "required"
+            },
+            {
+              "id": "rule.implementation.confirm",
+              "summary": "Re-open edited files or rerun explain tools to confirm the change matches the plan.",
+              "severity": "required"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase.validation",
+      "label": "Validation",
+      "description": "Run or describe checks that prove the change works.",
+      "steps": [
+        {
+          "id": "step.validate_code",
+          "title": "Execute tests",
+          "intent": "Prefer automated scripts/test suites; otherwise supply manual verification steps.",
+          "rules": [
+            {
+              "id": "rule.validation.repo_checks",
+              "summary": "Run `run_repo_checks`, `npm test`, `npm run build`, or equivalent when the change touches code paths with coverage.",
+              "severity": "required"
+            },
+            {
+              "id": "rule.validation.explain_gap",
+              "summary": "If a check cannot be run (time, dependencies), explain the gap and how to verify later.",
+              "severity": "required"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase.reporting",
+      "label": "Reporting",
+      "description": "Summarize edits, cite evidence, and highlight follow-ups.",
+      "steps": [
+        {
+          "id": "step.report_code",
+          "title": "Summarize outcome",
+          "intent": "Describe the diff, tests executed, and remaining risks.",
+          "rules": [
+            {
+              "id": "rule.reporting.delta",
+              "summary": "List files changed with brief rationale and reference code blocks/line numbers.",
+              "severity": "required"
+            },
+            {
+              "id": "rule.reporting.next",
+              "summary": "Document follow-up tasks, validation still needed, and any environment assumptions.",
+              "severity": "recommended"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

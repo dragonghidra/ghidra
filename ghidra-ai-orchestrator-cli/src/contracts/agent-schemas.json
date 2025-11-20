@@ -1,0 +1,308 @@
+{
+  "$schema": "./schemas/agent-schemas.schema.json",
+  "contractVersion": "1.0.0",
+  "version": "2024-11-24",
+  "label": "APT CLI Agent Configuration Schema",
+  "description": "Centralized configuration for all agents, models, providers, and capabilities",
+
+  "providers": [
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "description": "OpenAI GPT models including GPT-5 series",
+      "envVars": {
+        "apiKey": "OPENAI_API_KEY"
+      },
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "anthropic",
+      "label": "Anthropic",
+      "description": "Anthropic Claude models including Sonnet, Opus, and Haiku",
+      "envVars": {
+        "apiKey": "ANTHROPIC_API_KEY"
+      },
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek",
+      "description": "DeepSeek reasoning and chat models",
+      "envVars": {
+        "apiKey": "DEEPSEEK_API_KEY"
+      },
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "xai",
+      "label": "xAI",
+      "description": "xAI Grok models for coding and reasoning",
+      "envVars": {
+        "apiKey": "XAI_API_KEY"
+      },
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "google",
+      "label": "Google",
+      "description": "Google Gemini models with multimodal capabilities",
+      "envVars": {
+        "apiKey": "GOOGLE_API_KEY"
+      },
+      "capabilities": ["chat", "reasoning", "tools", "streaming", "multimodal"]
+    }
+  ],
+
+  "models": [
+    {
+      "id": "gpt-5.1-codex",
+      "label": "gpt-5.1-codex",
+      "provider": "openai",
+      "description": "Optimized for APT Code with the latest coding weights from OpenAI.",
+      "reasoningEffort": "medium",
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "gpt-5.1",
+      "label": "gpt-5.1",
+      "provider": "openai",
+      "description": "Balanced reasoning model when you need equal parts code and analysis.",
+      "reasoningEffort": "medium",
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "gpt-5-pro",
+      "label": "gpt-5-pro",
+      "provider": "openai",
+      "description": "OpenAI's flagship GPT-5 Pro for maximum depth and planning.",
+      "reasoningEffort": "medium",
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "gpt-5-mini",
+      "label": "gpt-5-mini",
+      "provider": "openai",
+      "description": "GPT-5 Mini with faster turnarounds while staying code-aware.",
+      "reasoningEffort": "medium",
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "gpt-5-nano",
+      "label": "gpt-5-nano",
+      "provider": "openai",
+      "description": "Ultra-responsive GPT-5 Nano tuned for edits and quick summaries.",
+      "reasoningEffort": "medium",
+      "capabilities": ["chat", "tools", "streaming"]
+    },
+    {
+      "id": "claude-sonnet-4-5-20250929",
+      "label": "sonnet-4.5",
+      "provider": "anthropic",
+      "description": "Anthropic Sonnet 4.5 tuned for deeper planning across large repositories.",
+      "temperature": 0.7,
+      "maxTokens": 4096,
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "claude-opus-4.1",
+      "label": "opus-4.1",
+      "provider": "anthropic",
+      "description": "Anthropic Opus 4.1 for the richest Claude reasoning runs.",
+      "temperature": 0.7,
+      "maxTokens": 4096,
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "claude-haiku-4.5",
+      "label": "haiku-4.5",
+      "provider": "anthropic",
+      "description": "Anthropic Haiku 4.5 focused on latency-sensitive workflows.",
+      "temperature": 0.5,
+      "maxTokens": 4096,
+      "capabilities": ["chat", "tools", "streaming"]
+    },
+    {
+      "id": "deepseek-reasoner",
+      "label": "deepseek-reasoner",
+      "provider": "deepseek",
+      "description": "DeepSeek Reasoner for chain-of-thought exploration with tool depth.",
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "deepseek-chat",
+      "label": "deepseek-chat",
+      "provider": "deepseek",
+      "description": "DeepSeek Chat for faster interactive editing and summarization.",
+      "capabilities": ["chat", "tools", "streaming"]
+    },
+    {
+      "id": "grok-4",
+      "label": "grok-4",
+      "provider": "xai",
+      "description": "xAI Grok-4 for their highest quality coding and reasoning responses.",
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "grok-4-fast-reasoning",
+      "label": "grok-4-fast-reasoning",
+      "provider": "xai",
+      "description": "Grok-4 fast reasoning mode when you need lower latency with thinking enabled.",
+      "capabilities": ["chat", "reasoning", "tools", "streaming"]
+    },
+    {
+      "id": "grok-4-fast-non-reasoning",
+      "label": "grok-4-fast-non-reasoning",
+      "provider": "xai",
+      "description": "Grok-4 fast non reasoning variant for concise edits and summaries.",
+      "capabilities": ["chat", "tools", "streaming"]
+    },
+    {
+      "id": "grok-code-fast-1",
+      "label": "grok-code-fast-1",
+      "provider": "xai",
+      "description": "xAI Grok Code Fast 1 tuned specifically for rapid coding assistance.",
+      "capabilities": ["chat", "tools", "streaming"]
+    },
+    {
+      "id": "gemini-2.5-pro",
+      "label": "gemini-2.5-pro",
+      "provider": "google",
+      "description": "Google Gemini 2.5 Pro for multimodal deep reasoning with longer outputs.",
+      "capabilities": ["chat", "reasoning", "tools", "streaming", "multimodal"]
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "label": "gemini-2.5-flash",
+      "provider": "google",
+      "description": "Google Gemini 2.5 Flash for lower-latency edits and iterative coding.",
+      "capabilities": ["chat", "tools", "streaming", "multimodal"]
+    }
+  ],
+
+  "profiles": [
+    {
+      "name": "general",
+      "label": "APT",
+      "description": "General-purpose operator with balanced reasoning across research, planning, writing, and coding tasks.",
+      "defaultProvider": "openai",
+      "defaultModel": "gpt-5.1",
+      "temperature": 0.2,
+      "systemPrompt": {
+        "type": "rulebook",
+        "template": "{{rulebook}}"
+      },
+      "rulebook": {
+        "file": "agents/general.rules.json",
+        "version": "2024-11-24",
+        "contractVersion": "1.0.0",
+        "description": "Structured rules governing the balanced APT profile."
+      },
+      "metadata": {
+        "primaryUseCase": "general-purpose",
+        "tags": ["balanced", "research", "planning", "coding"]
+      }
+    },
+    {
+      "name": "apt-code",
+      "label": "APT Code",
+      "description": "OpenAI-tuned coding specialist optimized for rapid edits with deterministic grounding.",
+      "defaultProvider": "openai",
+      "defaultModel": "gpt-5.1-codex",
+      "systemPrompt": {
+        "type": "rulebook"
+      },
+      "rulebook": {
+        "file": "agents/apt-code.rules.json",
+        "version": "2024-11-24",
+        "contractVersion": "1.0.0",
+        "description": "Deterministic coding workflow guardrails."
+      },
+      "metadata": {
+        "primaryUseCase": "coding",
+        "tags": ["coding", "deterministic", "rapid-edits"]
+      }
+    }
+  ],
+
+  "slashCommands": [
+    {
+      "command": "/model",
+      "description": "Choose what model to use",
+      "category": "configuration"
+    },
+    {
+      "command": "/secrets",
+      "description": "Configure API keys",
+      "category": "configuration"
+    },
+    {
+      "command": "/tools",
+      "description": "Enable or disable CLI tools",
+      "category": "configuration"
+    },
+    {
+      "command": "/thinking",
+      "description": "Toggle extended thinking mode (concise, balanced, extended)",
+      "category": "configuration"
+    },
+    {
+      "command": "/skills",
+      "description": "List available SKILL.md packages and refresh the cache",
+      "category": "workspace"
+    },
+    {
+      "command": "/doctor",
+      "description": "Check environment, secrets, and tool readiness",
+      "category": "diagnostics"
+    },
+    {
+      "command": "/checks",
+      "description": "Run repo checks (npm test / npm run build / npm run lint)",
+      "category": "diagnostics"
+    },
+    {
+      "command": "/context",
+      "description": "Refresh workspace snapshot (depth/excerpt overrides)",
+      "category": "workspace"
+    },
+    {
+      "command": "/sessions",
+      "description": "Manage saved conversations, autosave, and session history",
+      "category": "workspace"
+    }
+  ],
+
+  "capabilities": [
+    {
+      "id": "chat",
+      "label": "Chat",
+      "description": "Basic conversational capabilities"
+    },
+    {
+      "id": "reasoning",
+      "label": "Reasoning",
+      "description": "Extended chain-of-thought reasoning capabilities"
+    },
+    {
+      "id": "tools",
+      "label": "Tool Use",
+      "description": "Ability to call external tools and functions"
+    },
+    {
+      "id": "streaming",
+      "label": "Streaming",
+      "description": "Support for streaming responses"
+    },
+    {
+      "id": "multimodal",
+      "label": "Multimodal",
+      "description": "Support for images and other non-text inputs"
+    }
+  ],
+
+  "metadata": {
+    "schemaVersion": "1.0.0",
+    "lastUpdated": "2024-11-24",
+    "description": "This is the single source of truth for all agent configurations in the APT CLI"
+  }
+}
